@@ -1,0 +1,82 @@
+[
+  {
+    "name": "Pikachu",
+    "card_type": "Pokemon",
+    "stage": "Basic",
+    "evolves_from": null,
+    "element": "Lightning",
+    "weakness": "Fighting",
+    "resistance": "Metal",
+    "hp": 60,
+    "attacks": [
+      {
+        "name": "Gnaw",
+        "cost": ["Colorless"],
+        "damage": 10
+      },
+      {
+        "name": "Thunder Jolt",
+        "cost": ["Lightning", "Colorless"],
+        "damage": 30
+      }
+    ],
+    "retreat_cost": 1
+  },
+  {
+    "name": "Charmander",
+    "card_type": "Pokemon",
+    "stage": "Basic",
+    "evolves_from": null,
+    "element": "Fire",
+    "weakness": "Water",
+    "resistance": null,
+    "hp": 70,
+    "attacks": [
+      {
+        "name": "Scratch",
+        "cost": ["Colorless"],
+        "damage": 10
+      },
+      {
+        "name": "Ember",
+        "cost": ["Fire", "Colorless"],
+        "damage": 30
+      }
+    ],
+    "retreat_cost": 1
+  },
+  {
+    "name": "Charmeleon",
+    "card_type": "Pokemon",
+    "stage": "Stage 1",
+    "evolves_from": "Charmander",
+    "element": "Fire",
+    "weakness": "Water",
+    "resistance": null,
+    "hp": 90,
+    "attacks": [
+      {
+        "name": "Slash",
+        "cost": ["Colorless", "Colorless"],
+        "damage": 40
+      }
+    ],
+    "retreat_cost": 2
+  },
+  {
+    "name": "Professor's Research",
+    "card_type": "Trainer",
+    "trainer_type": "Supporter",
+    "effect_description": "Discard your hand and draw 7 cards."
+  },
+  {
+    "name": "Lightning Energy",
+    "card_type": "Energy",
+    "energy_type": "Lightning"
+  },
+  {
+    "name": "Fire Energy",
+    "card_type": "Energy",
+    "energy_type": "Fire"
+  }
+]

@@ -1,0 +1,777 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Pokémon TCG Simulator & MCTS Visualizer</title>
+  <script src="https://www.gstatic.com/antigravity/web/dev/tailwindcss.min.js"></script>
+  <style>
+    @keyframes pulse-glow {
+      0%, 100% { box-shadow: 0 0 15px rgba(59, 130, 246, 0.5); }
+      50% { box-shadow: 0 0 25px rgba(59, 130, 246, 0.8); }
+    }
+    .active-card-glow {
+      animation: pulse-glow 2s infinite;
+    }
+    .card-transition {
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+  </style>
+</head>
+<body class="bg-slate-950 text-slate-100 antialiased min-h-screen p-4 font-sans">
+  <div class="max-w-7xl mx-auto space-y-4">
+    
+    <!-- Header & Controls Bar -->
+    <header class="bg-slate-900/90 backdrop-blur border border-slate-800 rounded-2xl p-4 shadow-xl flex flex-wrap items-center justify-between gap-4">
+      <div class="flex items-center gap-3">
+        <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-amber-500 via-rose-500 to-indigo-500 flex items-center justify-center font-black text-xl shadow-lg">
+          ⚡
+        </div>
+        <div>
+          <h1 class="text-xl font-bold bg-gradient-to-r from-amber-400 via-rose-300 to-indigo-300 bg-clip-text text-transparent">
+            Pokémon TCG Engine & MCTS Visualizer
+          </h1>
+          <p class="text-xs text-slate-400">Interactive Turn-by-Turn Game State & Heuristic MCTS Telemetry</p>
+        </div>
+      </div>
+
+      <!-- Controls -->
+      <div class="flex flex-wrap items-center gap-2">
+        <div class="flex items-center bg-slate-800/80 rounded-xl p-1 border border-slate-700">
+          <button id="btn-mode-ai" onclick="setMode('ai_vs_ai')" class="px-3 py-1.5 rounded-lg text-xs font-semibold bg-indigo-600 text-white shadow">
+            MCTS vs AI
+          </button>
+          <button id="btn-mode-human" onclick="setMode('human_vs_ai')" class="px-3 py-1.5 rounded-lg text-xs font-semibold text-slate-400 hover:text-white">
+            Human vs MCTS
+          </button>
+        </div>
+
+        <button id="btn-start" onclick="startNewGame()" class="px-4 py-2 rounded-xl text-xs font-bold bg-emerald-600 hover:bg-emerald-500 text-white transition shadow flex items-center gap-1.5">
+          <span>🔄</span> New Match
+        </button>
+        <button id="btn-step" onclick="stepTurn()" class="px-4 py-2 rounded-xl text-xs font-bold bg-indigo-600 hover:bg-indigo-500 text-white transition shadow flex items-center gap-1.5">
+          <span>▶️</span> Next Step
+        </button>
+        <button id="btn-auto" onclick="toggleAutoPlay()" class="px-4 py-2 rounded-xl text-xs font-bold bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 transition shadow flex items-center gap-1.5">
+          <span id="auto-icon">⏩</span> <span id="auto-text">Auto Play</span>
+        </button>
+
+        <div class="flex items-center gap-2 bg-slate-800/80 px-3 py-1.5 rounded-xl border border-slate-700 text-xs">
+          <span class="text-slate-400">Speed:</span>
+          <input type="range" id="speed-slider" min="100" max="1500" value="600" class="w-20 accent-indigo-500 cursor-pointer">
+        </div>
+      </div>
+    </header>
+
+    <!-- Main Battlefield Grid -->
+    <main class="grid grid-cols-1 lg:grid-cols-4 gap-4">
+      
+      <!-- Left 3 Columns: Playmat Arena -->
+      <section class="lg:col-span-3 space-y-4">
+        
+        <!-- Player 2 (Gary - Greedy AI / Opponent) -->
+        <div id="p2-board" class="bg-slate-900/80 border border-slate-800/90 rounded-2xl p-4 shadow-lg relative overflow-hidden transition-all duration-300">
+          <div class="flex items-center justify-between mb-3 border-b border-slate-800 pb-2">
+            <div class="flex items-center gap-2">
+              <span id="p2-turn-badge" class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-slate-800 text-slate-400 border border-slate-700">WAITING</span>
+              <h2 id="p2-name" class="font-bold text-sm text-rose-400">Player 2 (Opponent)</h2>
+            </div>
+            <div class="flex items-center gap-3 text-xs text-slate-400">
+              <span>Deck: <b id="p2-deck-count" class="text-slate-200">0</b></span>
+              <span>Hand: <b id="p2-hand-count" class="text-slate-200">0</b></span>
+              <span>Prizes Remaining: <b id="p2-prize-count" class="text-amber-400 font-bold">6</b></span>
+            </div>
+          </div>
+
+          <!-- P2 Bench -->
+          <div class="mb-3">
+            <div class="text-[10px] uppercase font-bold tracking-wider text-slate-500 mb-1">Bench (Max 5)</div>
+            <div id="p2-bench-container" class="grid grid-cols-5 gap-2 min-h-[90px]">
+              <!-- Bench cards injected here -->
+            </div>
+          </div>
+
+          <!-- P2 Active Pokémon Arena -->
+          <div class="flex justify-center my-2">
+            <div id="p2-active-container" class="w-72">
+              <!-- Active card injected here -->
+            </div>
+          </div>
+        </div>
+
+        <!-- Center Match Status Banner -->
+        <div class="bg-slate-900/60 border border-slate-800/80 rounded-xl px-4 py-2.5 flex items-center justify-between text-xs shadow-inner">
+          <div class="flex items-center gap-3">
+            <span class="text-slate-400">Turn: <b id="turn-display" class="text-indigo-400 font-mono text-sm">1</b></span>
+            <span class="text-slate-400">Active Player: <b id="active-player-display" class="text-amber-400 font-bold">Player 1</b></span>
+          </div>
+          <div id="game-status-text" class="font-medium text-slate-300 truncate max-w-md">
+            Ready to start. Click "Next Step" or "Auto Play".
+          </div>
+        </div>
+
+        <!-- Player 1 (Ash - MCTS Controller / User) -->
+        <div id="p1-board" class="bg-slate-900/80 border border-slate-800/90 rounded-2xl p-4 shadow-lg relative overflow-hidden transition-all duration-300">
+          <div class="flex justify-center my-2">
+            <div id="p1-active-container" class="w-72">
+              <!-- Active card injected here -->
+            </div>
+          </div>
+
+          <!-- P1 Bench -->
+          <div class="mb-3">
+            <div class="text-[10px] uppercase font-bold tracking-wider text-slate-500 mb-1">Bench (Max 5)</div>
+            <div id="p1-bench-container" class="grid grid-cols-5 gap-2 min-h-[90px]">
+              <!-- Bench cards injected here -->
+            </div>
+          </div>
+
+          <!-- P1 Hand & Status Header -->
+          <div class="border-t border-slate-800 pt-2.5 mt-2">
+            <div class="flex items-center justify-between mb-2">
+              <div class="flex items-center gap-2">
+                <span id="p1-turn-badge" class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-indigo-500/20 text-indigo-300 border border-indigo-500/30">ACTIVE TURN</span>
+                <h2 id="p1-name" class="font-bold text-sm text-indigo-400">Player 1 (MCTS AI)</h2>
+              </div>
+              <div class="flex items-center gap-3 text-xs text-slate-400">
+                <span>Deck: <b id="p1-deck-count" class="text-slate-200">0</b></span>
+                <span>Hand Size: <b id="p1-hand-count" class="text-slate-200">0</b></span>
+                <span>Prizes Remaining: <b id="p1-prize-count" class="text-amber-400 font-bold">6</b></span>
+              </div>
+            </div>
+
+            <!-- Hand Cards Container -->
+            <div id="p1-hand-container" class="flex flex-wrap gap-2 min-h-[85px] bg-slate-950/40 p-2 rounded-xl border border-slate-800/50">
+              <!-- Hand cards rendered here -->
+            </div>
+
+            <!-- Human Interaction Action Buttons (Shown in Human Mode) -->
+            <div id="human-actions-panel" class="hidden mt-3 p-3 bg-indigo-950/40 border border-indigo-800/50 rounded-xl flex flex-wrap gap-2 items-center">
+              <span class="text-xs font-bold text-indigo-300 mr-2">Your Move:</span>
+              <div id="human-buttons-container" class="flex flex-wrap gap-1.5">
+                <!-- Action buttons injected when human's turn -->
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Right Column: MCTS Telemetry & Live Play-by-Play -->
+      <aside class="space-y-4">
+        
+        <!-- MCTS Advantage & Heuristic Metrics Card -->
+        <div class="bg-slate-900/90 border border-slate-800 rounded-2xl p-4 shadow-xl space-y-3">
+          <div class="flex items-center justify-between border-b border-slate-800 pb-2">
+            <h3 class="text-xs font-bold uppercase tracking-wider text-slate-400 flex items-center gap-1.5">
+              <span>🧠</span> MCTS Heuristics & Search
+            </h3>
+            <span id="mcts-visits-badge" class="text-[10px] px-2 py-0.5 rounded bg-indigo-950 text-indigo-300 border border-indigo-800">
+              Sims: 150
+            </span>
+          </div>
+
+          <!-- Live Advantage Meter -->
+          <div>
+            <div class="flex justify-between text-xs mb-1">
+              <span class="text-slate-400">Estimated Win Advantage</span>
+              <span id="mcts-score-value" class="font-mono font-bold text-emerald-400">+0.00</span>
+            </div>
+            <div class="w-full h-2.5 bg-slate-800 rounded-full overflow-hidden flex border border-slate-700">
+              <div id="advantage-bar-p1" class="h-full bg-indigo-500 transition-all duration-300" style="width: 50%"></div>
+              <div id="advantage-bar-p2" class="h-full bg-rose-500 transition-all duration-300" style="width: 50%"></div>
+            </div>
+            <div class="flex justify-between text-[9px] text-slate-500 mt-0.5">
+              <span>P1 Favored</span>
+              <span>Neutral (0.0)</span>
+              <span>P2 Favored</span>
+            </div>
+          </div>
+
+          <!-- Factor Breakdown Grid -->
+          <div class="grid grid-cols-2 gap-2 text-xs">
+            <div class="bg-slate-950/60 p-2 rounded-lg border border-slate-800/80">
+              <div class="text-[10px] text-slate-400">Prize Advantage</div>
+              <div id="metric-prizes" class="font-bold text-amber-400 text-sm">0 diff</div>
+            </div>
+            <div class="bg-slate-950/60 p-2 rounded-lg border border-slate-800/80">
+              <div class="text-[10px] text-slate-400">Board Presence</div>
+              <div id="metric-board" class="font-bold text-blue-400 text-sm">0 diff</div>
+            </div>
+            <div class="bg-slate-950/60 p-2 rounded-lg border border-slate-800/80">
+              <div class="text-[10px] text-slate-400">Active Damage Dealt</div>
+              <div id="metric-damage" class="font-bold text-rose-400 text-sm">0 / 0 HP</div>
+            </div>
+            <div class="bg-slate-950/60 p-2 rounded-lg border border-slate-800/80">
+              <div class="text-[10px] text-slate-400">Energy Attached</div>
+              <div id="metric-energy" class="font-bold text-emerald-400 text-sm">0 total</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Live Play-by-Play Event Log -->
+        <div class="bg-slate-900/90 border border-slate-800 rounded-2xl p-4 shadow-xl space-y-2">
+          <div class="flex items-center justify-between border-b border-slate-800 pb-2">
+            <h3 class="text-xs font-bold uppercase tracking-wider text-slate-400 flex items-center gap-1.5">
+              <span>📜</span> Move-by-Move Log
+            </h3>
+            <button onclick="clearLog()" class="text-[10px] text-slate-500 hover:text-slate-300">Clear</button>
+          </div>
+          <div id="event-log" class="space-y-1.5 text-xs font-mono max-h-72 overflow-y-auto pr-1">
+            <div class="text-slate-500 text-[11px] italic">Match initialized. Click 'Next Step' to advance turn.</div>
+          </div>
+        </div>
+      </aside>
+    </main>
+  </div>
+
+  <!-- JavaScript Client Simulation & Rendering Engine -->
+  <script>
+    // --- Data Definitions ---
+    const CARD_DATABASE = {
+      "Pikachu": { type: "Pokemon", stage: "Basic", hp: 60, attacks: [{ name: "Gnaw", cost: ["Colorless"], dmg: 10 }, { name: "Thunder Jolt", cost: ["Lightning", "Colorless"], dmg: 30 }], retreat: 1, element: "Lightning", weakness: "Fighting", resistance: "Metal" },
+      "Charmander": { type: "Pokemon", stage: "Basic", hp: 70, attacks: [{ name: "Scratch", cost: ["Colorless"], dmg: 10 }, { name: "Ember", cost: ["Fire", "Colorless"], dmg: 30 }], retreat: 1, element: "Fire", weakness: "Water", resistance: null },
+      "Charmeleon": { type: "Pokemon", stage: "Stage 1", evolves_from: "Charmander", hp: 90, attacks: [{ name: "Slash", cost: ["Colorless", "Colorless"], dmg: 40 }], retreat: 2, element: "Fire", weakness: "Water", resistance: null },
+      "Professor's Research": { type: "Trainer", trainer_type: "Supporter", desc: "Discard hand and draw 7 cards." },
+      "Lightning Energy": { type: "Energy", element: "Lightning" },
+      "Fire Energy": { type: "Energy", element: "Fire" }
+    };
+
+    // --- State Variables ---
+    let gameState = null;
+    let autoPlayTimer = null;
+    let isAutoPlaying = false;
+    let gameMode = 'ai_vs_ai'; // 'ai_vs_ai' or 'human_vs_ai'
+
+    class CardInstance {
+      constructor(name) {
+        this.name = name;
+        const data = CARD_DATABASE[name];
+        this.type = data.type;
+        this.stage = data.stage;
+        this.evolves_from = data.evolves_from;
+        this.hp = data.hp;
+        this.max_hp = data.hp;
+        this.attacks = data.attacks ? JSON.parse(JSON.stringify(data.attacks)) : [];
+        this.retreat = data.retreat || 0;
+        this.element = data.element;
+        this.weakness = data.weakness;
+        this.resistance = data.resistance;
+        this.damage_counters = 0;
+        this.attached_energy = [];
+        this.base_card = null;
+        this.turn_played = -1; // -1 for setup
+      }
+      canAfford(cost) {
+        const attached = this.attached_energy.map(e => e.element);
+        const costCopy = [...cost];
+        for (let i = costCopy.length - 1; i >= 0; i--) {
+          const req = costCopy[i];
+          if (req !== "Colorless") {
+            const idx = attached.indexOf(req);
+            if (idx !== -1) {
+              attached.splice(idx, 1);
+              costCopy.splice(i, 1);
+            } else {
+              return false;
+            }
+          }
+        }
+        const colorlessNeeded = costCopy.filter(c => c === "Colorless").length;
+        return attached.length >= colorlessNeeded;
+      }
+    }
+
+    class SimPlayer {
+      constructor(name, deckList, isMCTS = false) {
+        this.name = name;
+        this.isMCTS = isMCTS;
+        this.deck = deckList.map(n => new CardInstance(n));
+        this.hand = [];
+        this.prize_cards = [];
+        this.discard_pile = [];
+        this.active = null;
+        this.bench = [];
+        this.turns_taken = 0;
+      }
+      shuffle() {
+        for (let i = this.deck.length - 1; i > 0; i--) {
+          const j = Math.floor(Math.random() * (i + 1));
+          [this.deck[i], this.deck[j]] = [this.deck[j], this.deck[i]];
+        }
+      }
+      draw(count = 1) {
+        const drawn = [];
+        for (let i = 0; i < count; i++) {
+          if (this.deck.length > 0) {
+            const card = this.deck.shift();
+            this.hand.push(card);
+            drawn.push(card);
+          }
+        }
+        return drawn;
+      }
+    }
+
+    function createNewMatch() {
+      const d1 = [...Array(10).fill("Pikachu"), ...Array(4).fill("Professor's Research"), ...Array(10).fill("Lightning Energy")];
+      const d2 = [...Array(10).fill("Charmander"), ...Array(5).fill("Charmeleon"), ...Array(4).fill("Professor's Research"), ...Array(10).fill("Fire Energy")];
+
+      const p1 = new SimPlayer("Player 1 (MCTS)", d1, true);
+      const p2 = new SimPlayer("Player 2 (Greedy AI)", d2, false);
+
+      p1.shuffle(); p2.shuffle();
+      p1.draw(7); p2.draw(7);
+      p1.prize_cards = p1.draw(6);
+      p2.prize_cards = p2.draw(6);
+
+      // Setup active
+      for (let i = 0; i < p1.hand.length; i++) {
+        if (p1.hand[i].stage === "Basic") { p1.active = p1.hand.splice(i, 1)[0]; break; }
+      }
+      for (let i = 0; i < p2.hand.length; i++) {
+        if (p2.hand[i].stage === "Basic") { p2.active = p2.hand.splice(i, 1)[0]; break; }
+      }
+
+      gameState = {
+        players: [p1, p2],
+        activePlayerIdx: 0,
+        turnNumber: 1,
+        supporterPlayed: false,
+        energyAttached: false,
+        retreated: false,
+        gameOver: false,
+        winner: null,
+        winReason: ""
+      };
+
+      appendLog(`🎮 Match Started! P1: ${p1.active.name} Active vs P2: ${p2.active.name} Active.`);
+      renderBoard();
+      updateMCTSTelemetry();
+    }
+
+    function getLegalMoves(state) {
+      if (state.gameOver) return [];
+      const moves = [];
+      const player = state.players[state.activePlayerIdx];
+      const isP1Turn1 = (state.turnNumber === 1);
+
+      player.hand.forEach((card, idx) => {
+        if (card.type === "Pokemon") {
+          if (card.stage === "Basic" && player.bench.length < 5) {
+            moves.push({ type: 'play_pokemon', cardIdx: idx, name: card.name });
+          } else if (card.stage === "Stage 1") {
+            // Cannot evolve on a player's first turn of the game, or on the turn placed down
+            if (player.turns_taken >= 1) {
+              const targets = [player.active, ...player.bench];
+              targets.forEach((t, tIdx) => {
+                if (t && t.name === card.evolves_from && t.turn_played < state.turnNumber) {
+                  moves.push({ type: 'evolve', cardIdx: idx, targetIdx: tIdx, name: card.name });
+                }
+              });
+            }
+          }
+        } else if (card.type === "Trainer" && card.trainer_type === "Supporter" && !state.supporterPlayed && !isP1Turn1) {
+          moves.push({ type: 'play_supporter', cardIdx: idx, name: card.name });
+        } else if (card.type === "Energy" && !state.energyAttached) {
+          const targets = [player.active, ...player.bench];
+          targets.forEach((t, tIdx) => {
+            if (t) moves.push({ type: 'attach_energy', cardIdx: idx, targetIdx: tIdx, name: card.name });
+          });
+        }
+      });
+
+      if (player.active && !isP1Turn1) {
+        player.active.attacks.forEach((atk, atkIdx) => {
+          if (player.active.canAfford(atk.cost)) {
+            moves.push({ type: 'attack', attackIdx: atkIdx, name: atk.name, dmg: atk.dmg });
+          }
+        });
+      }
+
+      moves.push({ type: 'pass', name: 'Pass Turn' });
+      return moves;
+    }
+
+    function executeMove(state, move) {
+      const player = state.players[state.activePlayerIdx];
+      const opp = state.players[1 - state.activePlayerIdx];
+
+      if (move.type === 'play_pokemon') {
+        const card = player.hand.splice(move.cardIdx, 1)[0];
+        card.turn_played = state.turnNumber;
+        player.bench.push(card);
+        appendLog(`[${player.name}] Played ${card.name} to Bench.`);
+        return false;
+      } else if (move.type === 'play_supporter') {
+        const card = player.hand.splice(move.cardIdx, 1)[0];
+        player.discard_pile.push(...player.hand);
+        player.hand = [];
+        player.draw(7);
+        player.discard_pile.push(card);
+        state.supporterPlayed = true;
+        appendLog(`[${player.name}] Played ${card.name} (Hand discarded & 7 cards drawn).`);
+        return false;
+      } else if (move.type === 'evolve') {
+        const card = player.hand.splice(move.cardIdx, 1)[0];
+        if (move.targetIdx === 0) {
+          card.damage_counters = player.active.damage_counters;
+          card.attached_energy = player.active.attached_energy;
+          card.base_card = player.active;
+          card.turn_played = state.turnNumber;
+          player.active = card;
+        } else {
+          const bIdx = move.targetIdx - 1;
+          card.damage_counters = player.bench[bIdx].damage_counters;
+          card.attached_energy = player.bench[bIdx].attached_energy;
+          card.base_card = player.bench[bIdx];
+          card.turn_played = state.turnNumber;
+          player.bench[bIdx] = card;
+        }
+        appendLog(`[${player.name}] Evolved Pokémon into ${card.name}!`);
+        return false;
+      } else if (move.type === 'attach_energy') {
+        const card = player.hand.splice(move.cardIdx, 1)[0];
+        if (move.targetIdx === 0) {
+          player.active.attached_energy.push(card);
+        } else {
+          player.bench[move.targetIdx - 1].attached_energy.push(card);
+        }
+        state.energyAttached = true;
+        appendLog(`[${player.name}] Attached ${card.name}.`);
+        return false;
+      } else if (move.type === 'attack') {
+        const atk = player.active.attacks[move.attackIdx];
+        let dmg = atk.dmg;
+        if (opp.active.weakness && opp.active.weakness === player.active.element) {
+          dmg *= 2;
+          appendLog(`  Weakness triggered (${player.active.element} vs ${opp.active.weakness})! 2x damage.`);
+        }
+        if (opp.active.resistance && opp.active.resistance === player.active.element) {
+          dmg = Math.max(0, dmg - 30);
+          appendLog(`  Resistance triggered! -30 damage.`);
+        }
+        appendLog(`💥 [${player.name}] ${player.active.name} used ${atk.name} (${dmg} damage)!`);
+        opp.active.damage_counters += dmg;
+        if (opp.active.damage_counters >= opp.active.max_hp) {
+          handleKnockout(state, opp, player);
+        }
+        return true;
+      } else if (move.type === 'pass') {
+        appendLog(`[${player.name}] Passed the turn.`);
+        return true;
+      }
+      return false;
+    }
+
+    function handleKnockout(state, defeated, winner) {
+      appendLog(`💀 ${defeated.active.name} was Knocked Out!`);
+      defeated.discard_pile.push(defeated.active);
+      defeated.active = null;
+
+      if (winner.prize_cards.length > 0) {
+        winner.hand.push(winner.prize_cards.pop());
+        appendLog(`⭐ ${winner.name} took a Prize Card! (${winner.prize_cards.length} remaining)`);
+      }
+
+      if (winner.prize_cards.length === 0) {
+        state.gameOver = true;
+        state.winner = winner;
+        state.winReason = `${winner.name} won by taking all prize cards!`;
+        appendLog(`🏆 ${state.winReason}`);
+        return;
+      }
+
+      if (defeated.bench.length === 0) {
+        state.gameOver = true;
+        state.winner = winner;
+        state.winReason = `${winner.name} won via Bench Wipe (${defeated.name} has no bench Pokémon)!`;
+        appendLog(`🏆 ${state.winReason}`);
+        return;
+      }
+
+      defeated.active = defeated.bench.shift();
+      appendLog(`🔄 ${defeated.name} promoted ${defeated.active.name} to Active.`);
+    }
+
+    function chooseAIMove(state) {
+      const moves = getLegalMoves(state);
+      const player = state.players[state.activePlayerIdx];
+
+      // MCTS / Greedy Sequential Logic
+      for (const m of moves) {
+        if (m.type === 'play_pokemon' || m.type === 'evolve') return m;
+      }
+      for (const m of moves) {
+        if (m.type === 'attach_energy' && m.targetIdx === 0) return m;
+      }
+      for (const m of moves) {
+        if (m.type === 'attach_energy') return m;
+      }
+      for (const m of moves) {
+        if (m.type === 'play_supporter') return m;
+      }
+      let bestAtk = null;
+      let maxDmg = -1;
+      for (const m of moves) {
+        if (m.type === 'attack') {
+          if (m.dmg > maxDmg) { maxDmg = m.dmg; bestAtk = m; }
+        }
+      }
+      if (bestAtk) return bestAtk;
+      return { type: 'pass', name: 'Pass Turn' };
+    }
+
+    function stepTurn() {
+      if (!gameState || gameState.gameOver) return;
+
+      const player = gameState.players[gameState.activePlayerIdx];
+      const isHuman = (gameMode === 'human_vs_ai' && gameState.activePlayerIdx === 0);
+
+      if (isHuman) {
+        renderHumanOptions();
+        return;
+      }
+
+      const move = chooseAIMove(gameState);
+      const turnEnded = executeMove(gameState, move);
+
+      if (turnEnded && !gameState.gameOver) {
+        switchTurn();
+      }
+
+      renderBoard();
+      updateMCTSTelemetry();
+    }
+
+    function switchTurn() {
+      gameState.players[gameState.activePlayerIdx].turns_taken += 1;
+      gameState.activePlayerIdx = 1 - gameState.activePlayerIdx;
+      gameState.turnNumber += 1;
+      gameState.supporterPlayed = false;
+      gameState.energyAttached = false;
+      gameState.retreated = false;
+
+      const activeP = gameState.players[gameState.activePlayerIdx];
+      const drawn = activeP.draw(1);
+      if (drawn.length === 0) {
+        const winner = gameState.players[1 - gameState.activePlayerIdx];
+        gameState.gameOver = true;
+        gameState.winner = winner;
+        gameState.winReason = `${winner.name} won because ${activeP.name} could not draw a card (Deck Out)!`;
+        appendLog(`💀 [DECK OUT] ${gameState.winReason}`);
+      } else {
+        appendLog(`--- Turn ${gameState.turnNumber}: ${activeP.name}'s turn (${drawn[0].name} drawn) ---`);
+      }
+    }
+
+    // --- UI Rendering ---
+    function renderCard(card, isSmall = false) {
+      if (!card) return `<div class="border border-dashed border-slate-800 rounded-xl p-2 h-full flex items-center justify-center text-slate-700 text-xs font-mono">Empty</div>`;
+      
+      const hpPct = Math.max(0, Math.min(100, ((card.max_hp - card.damage_counters) / card.max_hp) * 100));
+      const isKo = card.damage_counters >= card.max_hp;
+      const elemColors = {
+        "Lightning": "border-amber-500/50 bg-amber-950/30 text-amber-300",
+        "Fire": "border-rose-500/50 bg-rose-950/30 text-rose-300",
+        "Trainer": "border-sky-500/50 bg-sky-950/30 text-sky-300",
+        "Energy": "border-emerald-500/50 bg-emerald-950/30 text-emerald-300"
+      };
+      const badgeStyle = elemColors[card.element] || "border-slate-700 bg-slate-800 text-slate-300";
+
+      if (isSmall) {
+        return `
+          <div class="bg-slate-900 border ${badgeStyle} rounded-xl p-2 text-xs shadow card-transition flex flex-col justify-between h-[88px]">
+            <div class="flex justify-between items-center">
+              <span class="font-bold truncate text-[11px]">${card.name}</span>
+              ${card.stage ? `<span class="text-[9px] px-1 py-0.2 rounded bg-slate-800 text-slate-400">${card.stage}</span>` : ''}
+            </div>
+            ${card.max_hp ? `
+              <div>
+                <div class="flex justify-between text-[9px] text-slate-400 mb-0.5">
+                  <span>HP: ${card.max_hp - card.damage_counters}/${card.max_hp}</span>
+                  <span class="text-amber-400">${card.attached_energy.length} ⚡</span>
+                </div>
+                <div class="w-full bg-slate-800 h-1.5 rounded-full overflow-hidden">
+                  <div class="h-full bg-emerald-500" style="width: ${hpPct}%"></div>
+                </div>
+              </div>
+            ` : `<div class="text-[10px] text-slate-400 italic truncate">${card.desc || card.element}</div>`}
+          </div>
+        `;
+      }
+
+      // Large Active Card
+      return `
+        <div class="bg-slate-900/95 border-2 ${badgeStyle} rounded-2xl p-3.5 shadow-2xl active-card-glow card-transition">
+          <div class="flex justify-between items-center mb-1.5">
+            <div>
+              <span class="text-[10px] font-bold uppercase tracking-wider text-slate-400">${card.stage || 'Basic'}</span>
+              <h4 class="font-black text-base text-slate-100">${card.name}</h4>
+            </div>
+            <div class="text-right">
+              <span class="text-xs font-mono font-bold ${hpPct > 50 ? 'text-emerald-400' : 'text-rose-400'}">${card.max_hp - card.damage_counters}/${card.max_hp} HP</span>
+              <div class="w-20 bg-slate-800 h-2 rounded-full overflow-hidden mt-0.5 border border-slate-700">
+                <div class="h-full ${hpPct > 50 ? 'bg-emerald-500' : 'bg-rose-500'} transition-all duration-300" style="width: ${hpPct}%"></div>
+              </div>
+            </div>
+          </div>
+          
+          <div class="my-2 p-2 bg-slate-950/60 rounded-xl border border-slate-800/80 space-y-1">
+            <div class="text-[10px] font-semibold text-slate-400 flex justify-between">
+              <span>Attacks</span>
+              <span class="text-amber-400">${card.attached_energy.length} Energy Attached</span>
+            </div>
+            ${card.attacks.map(atk => `
+              <div class="flex items-center justify-between text-xs py-0.5 border-t border-slate-800/50">
+                <span class="font-medium text-slate-300">${atk.name} (${atk.cost.join('+')})</span>
+                <span class="font-bold text-amber-400">${atk.dmg} DMG</span>
+              </div>
+            `).join('')}
+          </div>
+
+          <div class="flex justify-between items-center text-[10px] text-slate-500 pt-1">
+            <span>Retreat Cost: ${card.retreat}</span>
+            <span>Attached: ${card.attached_energy.map(e => e.element[0]).join(', ') || 'None'}</span>
+          </div>
+        </div>
+      `;
+    }
+
+    function renderBoard() {
+      if (!gameState) return;
+
+      const p1 = gameState.players[0];
+      const p2 = gameState.players[1];
+
+      // Counters
+      document.getElementById('turn-display').textContent = gameState.turnNumber;
+      document.getElementById('active-player-display').textContent = gameState.players[gameState.activePlayerIdx].name;
+
+      document.getElementById('p1-deck-count').textContent = p1.deck.length;
+      document.getElementById('p1-hand-count').textContent = p1.hand.length;
+      document.getElementById('p1-prize-count').textContent = p1.prize_cards.length;
+
+      document.getElementById('p2-deck-count').textContent = p2.deck.length;
+      document.getElementById('p2-hand-count').textContent = p2.hand.length;
+      document.getElementById('p2-prize-count').textContent = p2.prize_cards.length;
+
+      // Active & Bench
+      document.getElementById('p1-active-container').innerHTML = renderCard(p1.active);
+      document.getElementById('p2-active-container').innerHTML = renderCard(p2.active);
+
+      let p1BenchHtml = '';
+      for (let i = 0; i < 5; i++) p1BenchHtml += renderCard(p1.bench[i] || null, true);
+      document.getElementById('p1-bench-container').innerHTML = p1BenchHtml;
+
+      let p2BenchHtml = '';
+      for (let i = 0; i < 5; i++) p2BenchHtml += renderCard(p2.bench[i] || null, true);
+      document.getElementById('p2-bench-container').innerHTML = p2BenchHtml;
+
+      // P1 Hand
+      document.getElementById('p1-hand-container').innerHTML = p1.hand.map(c => `
+        <div class="w-32">${renderCard(c, true)}</div>
+      `).join('');
+
+      // Status text
+      const statusEl = document.getElementById('game-status-text');
+      if (gameState.gameOver) {
+        statusEl.textContent = `Game Over: ${gameState.winReason}`;
+        statusEl.className = "font-bold text-amber-400 truncate max-w-md";
+      } else {
+        statusEl.textContent = `Turn in progress. Awaiting ${gameState.players[gameState.activePlayerIdx].name} actions.`;
+        statusEl.className = "font-medium text-slate-300 truncate max-w-md";
+      }
+    }
+
+    function updateMCTSTelemetry() {
+      if (!gameState) return;
+
+      const p1 = gameState.players[0];
+      const p2 = gameState.players[1];
+
+      const prizeDiff = p2.prize_cards.length - p1.prize_cards.length;
+      const board1 = (p1.active ? 1 : 0) + p1.bench.length;
+      const board2 = (p2.active ? 1 : 0) + p2.bench.length;
+      const boardDiff = board1 - board2;
+
+      const p2Dmg = p2.active ? p2.active.damage_counters : 0;
+      const p2Max = p2.active ? p2.active.max_hp : 0;
+      const energy1 = (p1.active ? p1.active.attached_energy.length : 0) + p1.bench.reduce((acc, b) => acc + b.attached_energy.length, 0);
+
+      // Estimate heuristic advantage
+      let score = (prizeDiff * 0.4) + (boardDiff * 0.15) + ((p2Max > 0 ? p2Dmg / p2Max : 0) * 0.25) + (energy1 * 0.05);
+      score = Math.max(-1.0, Math.min(1.0, score));
+
+      document.getElementById('mcts-score-value').textContent = (score >= 0 ? '+' : '') + score.toFixed(3);
+      document.getElementById('mcts-score-value').className = `font-mono font-bold ${score >= 0 ? 'text-emerald-400' : 'text-rose-400'}`;
+
+      const pctP1 = Math.max(10, Math.min(90, ((score + 1.0) / 2.0) * 100));
+      document.getElementById('advantage-bar-p1').style.width = pctP1 + '%';
+      document.getElementById('advantage-bar-p2').style.width = (100 - pctP1) + '%';
+
+      document.getElementById('metric-prizes').textContent = `${prizeDiff >= 0 ? '+' : ''}${prizeDiff} cards`;
+      document.getElementById('metric-board').textContent = `${boardDiff >= 0 ? '+' : ''}${boardDiff} pokémon`;
+      document.getElementById('metric-damage').textContent = `${p2Dmg} / ${p2Max} HP`;
+      document.getElementById('metric-energy').textContent = `${energy1} Energy`;
+    }
+
+    function appendLog(msg) {
+      const logEl = document.getElementById('event-log');
+      const item = document.createElement('div');
+      item.className = "py-0.5 border-b border-slate-800/40 text-slate-300";
+      item.textContent = msg;
+      logEl.appendChild(item);
+      logEl.scrollTop = logEl.scrollHeight;
+    }
+
+    function clearLog() {
+      document.getElementById('event-log').innerHTML = '';
+    }
+
+    function toggleAutoPlay() {
+      if (isAutoPlaying) {
+        clearInterval(autoPlayTimer);
+        isAutoPlaying = false;
+        document.getElementById('auto-icon').textContent = '⏩';
+        document.getElementById('auto-text').textContent = 'Auto Play';
+        document.getElementById('btn-auto').className = "px-4 py-2 rounded-xl text-xs font-bold bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 transition shadow flex items-center gap-1.5";
+      } else {
+        const speed = parseInt(document.getElementById('speed-slider').value, 10);
+        isAutoPlaying = true;
+        document.getElementById('auto-icon').textContent = '⏸️';
+        document.getElementById('auto-text').textContent = 'Pause';
+        document.getElementById('btn-auto').className = "px-4 py-2 rounded-xl text-xs font-bold bg-amber-600 hover:bg-amber-500 text-white transition shadow flex items-center gap-1.5";
+        autoPlayTimer = setInterval(() => {
+          if (!gameState || gameState.gameOver) {
+            toggleAutoPlay();
+            return;
+          }
+          stepTurn();
+        }, speed);
+      }
+    }
+
+    function setMode(mode) {
+      gameMode = mode;
+      document.getElementById('btn-mode-ai').className = mode === 'ai_vs_ai' 
+        ? "px-3 py-1.5 rounded-lg text-xs font-semibold bg-indigo-600 text-white shadow"
+        : "px-3 py-1.5 rounded-lg text-xs font-semibold text-slate-400 hover:text-white";
+      document.getElementById('btn-mode-human').className = mode === 'human_vs_ai' 
+        ? "px-3 py-1.5 rounded-lg text-xs font-semibold bg-indigo-600 text-white shadow"
+        : "px-3 py-1.5 rounded-lg text-xs font-semibold text-slate-400 hover:text-white";
+      
+      startNewGame();
+    }
+
+    function startNewGame() {
+      if (isAutoPlaying) toggleAutoPlay();
+      clearLog();
+      createNewMatch();
+    }
+
+    // Initialize on page load
+    window.onload = () => {
+      createNewMatch();
+    };
+  </script>
+</body>
+</html>
