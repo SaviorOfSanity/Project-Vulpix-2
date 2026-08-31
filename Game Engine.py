@@ -1000,7 +1000,7 @@ class GameState:
                 prize_taker.hand.append(prize_taker.prize_cards.pop())
 
         if verbose:
-            print(f"⭐ {prize_taker.name} took {prizes_to_take} Prize Card(s)! ({len(prize_taker.prize_cards)} remaining)")
+            print(f"* {prize_taker.name} took {prizes_to_take} Prize Card(s)! ({len(prize_taker.prize_cards)} remaining)")
 
         # Win conditions:
         # 1. Taken all prize cards
@@ -1341,24 +1341,47 @@ class MCTSController:
             if not legal_moves:
                 break
 
-            best_move = ('pass',)
-            best_attack = None
-            highest_damage = -1
-            active_p = sim_game.get_active_player().active_pokemon
-
-            if active_p:
-                for m in legal_moves:
-                    if m[0] == 'attack':
-                        dmg = active_p.attacks[m[1]]['damage']
-                        if dmg > highest_damage:
-                            highest_damage = dmg
-                            best_attack = m
-
-            if best_attack:
-                best_move = best_attack
+            # Sequential Rollout Policy:
+            # 1. Bench & Evolve
+            evolve_or_bench = [m for m in legal_moves if m[0] in ('play_pokemon', 'evolve')]
+            if evolve_or_bench:
+                best_move = evolve_or_bench[0]
             else:
-                build_moves = [m for m in legal_moves if m[0] in ('play_pokemon', 'evolve', 'attach_energy', 'attach_tool', 'play_item', 'play_stadium', 'play_supporter')]
-                best_move = random.choice(build_moves) if build_moves else legal_moves[0]
+                # 2. Attach Energy (Active target 0 prioritized)
+                energy_moves = [m for m in legal_moves if m[0] == 'attach_energy']
+                if energy_moves:
+                    active_e = [m for m in energy_moves if m[2] == 0]
+                    best_move = active_e[0] if active_e else energy_moves[0]
+                else:
+                    # 3. Attach Tools
+                    tool_moves = [m for m in legal_moves if m[0] == 'attach_tool']
+                    if tool_moves:
+                        best_move = tool_moves[0]
+                    else:
+                        # 4. Play Items & Stadiums
+                        item_moves = [m for m in legal_moves if m[0] in ('play_item', 'play_stadium', 'use_stadium_ability')]
+                        if item_moves:
+                            best_move = item_moves[0]
+                        else:
+                            # 5. Play Supporter
+                            supporter_moves = [m for m in legal_moves if m[0] == 'play_supporter']
+                            if supporter_moves:
+                                best_move = supporter_moves[0]
+                            else:
+                                # 6. Highest-damage attack
+                                attack_moves = [m for m in legal_moves if m[0] == 'attack']
+                                if attack_moves:
+                                    active_p = sim_game.get_active_player().active_pokemon
+                                    best_atk = None
+                                    max_dmg = -1
+                                    for m in attack_moves:
+                                        dmg = active_p.attacks[m[1]]['damage'] if active_p else 0
+                                        if dmg > max_dmg:
+                                            max_dmg = dmg
+                                            best_atk = m
+                                    best_move = best_atk if best_atk else attack_moves[0]
+                                else:
+                                    best_move = ('pass',)
 
             turn_ended = sim_game.handle_action(best_move, verbose=False)
             if turn_ended and not sim_game.game_over:
