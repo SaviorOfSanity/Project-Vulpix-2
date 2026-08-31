@@ -1,7 +1,7 @@
 """
-Pokémon TCG Visual GUI & MCTS Game State Explorer
+Pokémon TCG Visual GUI & MCTS Game State Explorer (Standard Format)
 Uses Python's standard tkinter GUI framework (no external dependencies needed).
-Connects directly to the live Game Engine and MCTS Controller.
+Connects directly to the live Game Engine, Multi-Prize Pokémon ex, Items, Tools, Stadiums, and MCTS Controller.
 """
 
 import tkinter as tk
@@ -21,15 +21,32 @@ MCTSController = game_engine.MCTSController
 class PokemonTCGGUI:
     def __init__(self, root):
         self.root = root
-        self.root.title("Pokémon TCG Simulator & MCTS Visualizer")
-        self.root.geometry("1200x850")
+        self.root.title("Pokémon TCG Simulator & MCTS Visualizer (Standard Format)")
+        self.root.geometry("1240x880")
         self.root.minsize(1050, 750)
         self.root.configure(bg="#0f172a")
 
         # Game State
         self.factory = CardFactory('cards.json')
-        self.deck_p1_names = ["Pikachu"] * 10 + ["Professor's Research"] * 4 + ["Lightning Energy"] * 10
-        self.deck_p2_names = ["Charmander"] * 10 + ["Charmeleon"] * 5 + ["Professor's Research"] * 4 + ["Fire Energy"] * 10
+        self.deck_p1_names = (
+            ["Pikachu ex"] * 4 +
+            ["Pikachu"] * 6 +
+            ["Nest Ball"] * 4 +
+            ["Bravery Charm"] * 2 +
+            ["Professor's Research"] * 4 +
+            ["Boss's Orders"] * 2 +
+            ["Lightning Energy"] * 12
+        )
+        self.deck_p2_names = (
+            ["Charmander"] * 6 +
+            ["Charmeleon"] * 4 +
+            ["Charizard ex"] * 3 +
+            ["Rare Candy"] * 3 +
+            ["Ultra Ball"] * 4 +
+            ["Artazon"] * 2 +
+            ["Professor's Research"] * 4 +
+            ["Fire Energy"] * 10
+        )
 
         self.game = None
         self.mcts = MCTSController(iteration_limit=150, simulation_depth=6)
@@ -135,17 +152,17 @@ class PokemonTCGGUI:
 
         self.p2_active_label = tk.Label(
             p2_board_row, text="Active: (None)", font=("Segoe UI", 10, "bold"),
-            bg="#0f172a", fg="#f8fafc", relief="ridge", bd=2, width=32, height=4, justify="center"
+            bg="#0f172a", fg="#f8fafc", relief="ridge", bd=2, width=34, height=5, justify="center"
         )
         self.p2_active_label.pack(side="left", padx=4)
 
         self.p2_bench_label = tk.Label(
             p2_board_row, text="Bench: (Empty)", font=("Segoe UI", 9),
-            bg="#0f172a", fg="#cbd5e1", relief="ridge", bd=1, height=4, justify="left", anchor="nw", padx=6, pady=4
+            bg="#0f172a", fg="#cbd5e1", relief="ridge", bd=1, height=5, justify="left", anchor="nw", padx=6, pady=4
         )
         self.p2_bench_label.pack(side="left", fill="both", expand=True, padx=4)
 
-        # --- CENTER STATUS BANNER ---
+        # --- CENTER STATUS & STADIUM BANNER ---
         self.center_banner = tk.Frame(left_playmat, bg="#1e1b4b", padx=10, pady=6, relief="groove", bd=1)
         self.center_banner.pack(fill="x", pady=4)
 
@@ -154,6 +171,12 @@ class PokemonTCGGUI:
             font=("Segoe UI", 10, "bold"), fg="#a5b4fc", bg="#1e1b4b"
         )
         self.turn_status_label.pack(side="left")
+
+        self.stadium_label = tk.Label(
+            self.center_banner, text="Stadium: (None)",
+            font=("Segoe UI", 9, "bold"), fg="#34d399", bg="#1e1b4b"
+        )
+        self.stadium_label.pack(side="left", padx=16)
 
         self.last_move_label = tk.Label(
             self.center_banner, text="Game Initialized.",
@@ -173,13 +196,13 @@ class PokemonTCGGUI:
 
         self.p1_active_label = tk.Label(
             p1_board_row, text="Active: (None)", font=("Segoe UI", 10, "bold"),
-            bg="#0f172a", fg="#f8fafc", relief="ridge", bd=2, width=32, height=4, justify="center"
+            bg="#0f172a", fg="#f8fafc", relief="ridge", bd=2, width=34, height=5, justify="center"
         )
         self.p1_active_label.pack(side="left", padx=4)
 
         self.p1_bench_label = tk.Label(
             p1_board_row, text="Bench: (Empty)", font=("Segoe UI", 9),
-            bg="#0f172a", fg="#cbd5e1", relief="ridge", bd=1, height=4, justify="left", anchor="nw", padx=6, pady=4
+            bg="#0f172a", fg="#cbd5e1", relief="ridge", bd=1, height=5, justify="left", anchor="nw", padx=6, pady=4
         )
         self.p1_bench_label.pack(side="left", fill="both", expand=True, padx=4)
 
@@ -195,14 +218,13 @@ class PokemonTCGGUI:
         )
         self.p1_hand_label.pack(fill="x")
 
-        # Interactive Human Controls Panel (when in Human vs MCTS mode)
+        # Interactive Human Controls Panel
         self.human_panel = tk.Frame(left_playmat, bg="#0f172a", pady=4)
         self.human_panel.pack(fill="x")
         self.human_actions_frame = tk.Frame(self.human_panel, bg="#0f172a")
         self.human_actions_frame.pack(fill="x")
 
         # --- RIGHT SIDE: TELEMETRY & LOGS ---
-        # 1. Telemetry Card
         mcts_box = tk.LabelFrame(
             right_panel, text=" MCTS Heuristic Advantage ", font=("Segoe UI", 10, "bold"),
             bg="#1e293b", fg="#38bdf8", relief="groove", bd=1, padx=8, pady=8
@@ -225,7 +247,6 @@ class PokemonTCGGUI:
         )
         self.breakdown_label.pack(anchor="w")
 
-        # 2. Event Log Box
         log_box = tk.LabelFrame(
             right_panel, text=" Move-by-Move Telemetry Log ", font=("Segoe UI", 10, "bold"),
             bg="#1e293b", fg="#f8fafc", relief="groove", bd=1, padx=6, pady=6
@@ -274,6 +295,17 @@ class PokemonTCGGUI:
         self.log(f"=== New Match Started: {p1.name} vs {p2.name} ===")
         self.update_view()
 
+    def format_card_info(self, p_card):
+        if not p_card:
+            return "(None)"
+        eff_max = p_card.get_effective_max_hp()
+        cur_hp = eff_max - p_card.damage_counters
+        energy_count = len(p_card.attached_energy)
+        ex_str = " [EX 2P]" if p_card.is_rule_box else ""
+        tool_str = f" [Tool: {p_card.attached_tool.name}]" if p_card.attached_tool else ""
+        atks = ", ".join([f"{a['name']} ({a['damage']}dmg)" for a in p_card.attacks])
+        return f"{p_card.name}{ex_str}{tool_str}\nHP: {cur_hp}/{eff_max} | Energy: {energy_count}⚡\nAttacks: {atks}"
+
     def update_view(self):
         if not self.game:
             return
@@ -282,27 +314,22 @@ class PokemonTCGGUI:
         p2 = self.game.players[1]
         active_p = self.game.get_active_player()
 
-        # Turn header
         self.turn_status_label.config(
             text=f"Turn {self.game.turn_number + 1} | Active: {active_p.name}"
         )
+        stadium_name = self.game.active_stadium.name if self.game.active_stadium else "None"
+        self.stadium_label.config(text=f"Stadium: {stadium_name}")
 
         # Opponent (P2)
         self.p2_stats_label.config(
             text=f"Deck: {len(p2.deck)} | Hand: {len(p2.hand)} | Prizes Remaining: {len(p2.prize_cards)}"
         )
         if p2.active_pokemon:
-            p2_hp = p2.active_pokemon.max_hp - p2.active_pokemon.damage_counters
-            p2_energy = len(p2.active_pokemon.attached_energy)
-            p2_atks = ", ".join([f"{a['name']} ({a['damage']}dmg)" for a in p2.active_pokemon.attacks])
-            self.p2_active_label.config(
-                text=f"ACTIVE: {p2.active_pokemon.name}\nHP: {p2_hp}/{p2.active_pokemon.max_hp} | Energy: {p2_energy}⚡\nAttacks: {p2_atks}",
-                fg="#fb7185"
-            )
+            self.p2_active_label.config(text=f"ACTIVE: {self.format_card_info(p2.active_pokemon)}", fg="#fb7185")
         else:
             self.p2_active_label.config(text="ACTIVE: (None)", fg="#94a3b8")
 
-        p2_bench_str = "\n".join([f"• {p.name} ({p.max_hp - p.damage_counters}/{p.max_hp} HP, {len(p.attached_energy)}⚡)" for p in p2.bench]) or "(Bench Empty)"
+        p2_bench_str = "\n".join([f"• {self.format_card_info(p)}" for p in p2.bench]) or "(Bench Empty)"
         self.p2_bench_label.config(text=f"BENCH ({len(p2.bench)}/5):\n{p2_bench_str}")
 
         # Player 1 (P1)
@@ -310,17 +337,11 @@ class PokemonTCGGUI:
             text=f"Deck: {len(p1.deck)} | Hand: {len(p1.hand)} | Prizes Remaining: {len(p1.prize_cards)}"
         )
         if p1.active_pokemon:
-            p1_hp = p1.active_pokemon.max_hp - p1.active_pokemon.damage_counters
-            p1_energy = len(p1.active_pokemon.attached_energy)
-            p1_atks = ", ".join([f"{a['name']} ({a['damage']}dmg)" for a in p1.active_pokemon.attacks])
-            self.p1_active_label.config(
-                text=f"ACTIVE: {p1.active_pokemon.name}\nHP: {p1_hp}/{p1.active_pokemon.max_hp} | Energy: {p1_energy}⚡\nAttacks: {p1_atks}",
-                fg="#818cf8"
-            )
+            self.p1_active_label.config(text=f"ACTIVE: {self.format_card_info(p1.active_pokemon)}", fg="#818cf8")
         else:
             self.p1_active_label.config(text="ACTIVE: (None)", fg="#94a3b8")
 
-        p1_bench_str = "\n".join([f"• {p.name} ({p.max_hp - p.damage_counters}/{p.max_hp} HP, {len(p.attached_energy)}⚡)" for p in p1.bench]) or "(Bench Empty)"
+        p1_bench_str = "\n".join([f"• {self.format_card_info(p)}" for p in p1.bench]) or "(Bench Empty)"
         self.p1_bench_label.config(text=f"BENCH ({len(p1.bench)}/5):\n{p1_bench_str}")
 
         p1_hand_str = " | ".join([c.name for c in p1.hand]) or "(Hand Empty)"
@@ -332,14 +353,14 @@ class PokemonTCGGUI:
             text=f"Evaluation Score: {eval_score:+.3f}",
             fg="#10b981" if eval_score >= 0 else "#f43f5e"
         )
-        self.progress_advantage['value'] = eval_score + 1.0  # Map [-1, 1] to [0, 2]
+        self.progress_advantage['value'] = eval_score + 1.0
 
         prize_diff = len(p2.prize_cards) - len(p1.prize_cards)
         p1_board = (1 if p1.active_pokemon else 0) + len(p1.bench)
         p2_board = (1 if p2.active_pokemon else 0) + len(p2.bench)
         board_diff = p1_board - p2_board
         p2_dmg = p2.active_pokemon.damage_counters if p2.active_pokemon else 0
-        p2_max = p2.active_pokemon.max_hp if p2.active_pokemon else 1
+        p2_max = p2.active_pokemon.get_effective_max_hp() if p2.active_pokemon else 1
         p1_energy = sum(len(p.attached_energy) for p in ([p1.active_pokemon] + p1.bench) if p)
         p2_energy = sum(len(p.attached_energy) for p in ([p2.active_pokemon] + p2.bench) if p)
 
@@ -347,7 +368,6 @@ class PokemonTCGGUI:
             text=f"Prize Diff: {prize_diff:+d} | Board Diff: {board_diff:+d} | Damage: {p2_dmg}/{p2_max} | Energy Diff: {p1_energy - p2_energy:+d}"
         )
 
-        # Human interactive buttons
         for widget in self.human_actions_frame.winfo_children():
             widget.destroy()
 
@@ -377,6 +397,18 @@ class PokemonTCGGUI:
         elif action_type == 'evolve':
             card = self.game.get_active_player().hand[move[1]]
             return f"Evolve {card.name}"
+        elif action_type == 'play_item':
+            card = self.game.get_active_player().hand[move[1]]
+            return f"Item {card.name}"
+        elif action_type == 'attach_tool':
+            card = self.game.get_active_player().hand[move[1]]
+            tgt = "Active" if move[2] == 0 else f"Bench {move[2]}"
+            return f"Tool {card.name} -> {tgt}"
+        elif action_type == 'play_stadium':
+            card = self.game.get_active_player().hand[move[1]]
+            return f"Stadium {card.name}"
+        elif action_type == 'use_stadium_ability':
+            return "Use Stadium"
         elif action_type == 'attach_energy':
             card = self.game.get_active_player().hand[move[1]]
             tgt = "Active" if move[2] == 0 else f"Bench {move[2]}"
@@ -407,16 +439,13 @@ class PokemonTCGGUI:
         if not self.game or self.game.game_over:
             return
 
-        active_player = self.game.get_active_player()
         legal_moves = self.game.get_legal_moves()
         if not legal_moves:
             return
 
         if self.mode == "human_vs_mcts" and self.game.active_player_index == 0:
-            # Human turn: waiting for button press
             return
 
-        # AI Turn
         if self.game.active_player_index == 0:
             chosen_move = self.mcts.choose_action(self.game, legal_moves)
             ai_name = "MCTS"

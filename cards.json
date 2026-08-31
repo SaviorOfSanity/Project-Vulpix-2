@@ -8,6 +8,8 @@
     "weakness": "Fighting",
     "resistance": "Metal",
     "hp": 60,
+    "prize_yield": 1,
+    "is_rule_box": false,
     "attacks": [
       {
         "name": "Gnaw",
@@ -23,6 +25,26 @@
     "retreat_cost": 1
   },
   {
+    "name": "Pikachu ex",
+    "card_type": "Pokemon",
+    "stage": "Basic",
+    "evolves_from": null,
+    "element": "Lightning",
+    "weakness": "Fighting",
+    "resistance": "Metal",
+    "hp": 200,
+    "prize_yield": 2,
+    "is_rule_box": true,
+    "attacks": [
+      {
+        "name": "Topaz Bolt",
+        "cost": ["Lightning", "Lightning", "Colorless"],
+        "damage": 300
+      }
+    ],
+    "retreat_cost": 1
+  },
+  {
     "name": "Charmander",
     "card_type": "Pokemon",
     "stage": "Basic",
@@ -31,6 +53,8 @@
     "weakness": "Water",
     "resistance": null,
     "hp": 70,
+    "prize_yield": 1,
+    "is_rule_box": false,
     "attacks": [
       {
         "name": "Scratch",
@@ -54,6 +78,8 @@
     "weakness": "Water",
     "resistance": null,
     "hp": 90,
+    "prize_yield": 1,
+    "is_rule_box": false,
     "attacks": [
       {
         "name": "Slash",
@@ -64,10 +90,93 @@
     "retreat_cost": 2
   },
   {
+    "name": "Charizard ex",
+    "card_type": "Pokemon",
+    "stage": "Stage 2",
+    "evolves_from": "Charmeleon",
+    "element": "Fire",
+    "weakness": "Water",
+    "resistance": null,
+    "hp": 330,
+    "prize_yield": 2,
+    "is_rule_box": true,
+    "ability": {
+      "name": "Infernal Reign",
+      "type": "on_evolve",
+      "description": "When evolved, attach up to 3 Basic Fire Energy from your deck to your Pokémon."
+    },
+    "attacks": [
+      {
+        "name": "Burning Darkness",
+        "cost": ["Fire", "Fire"],
+        "damage": 180
+      }
+    ],
+    "retreat_cost": 2
+  },
+  {
     "name": "Professor's Research",
     "card_type": "Trainer",
     "trainer_type": "Supporter",
     "effect_description": "Discard your hand and draw 7 cards."
+  },
+  {
+    "name": "Boss's Orders",
+    "card_type": "Trainer",
+    "trainer_type": "Supporter",
+    "effect_description": "Switch in 1 of your opponent's Benched Pokémon to the Active Spot."
+  },
+  {
+    "name": "Iono",
+    "card_type": "Trainer",
+    "trainer_type": "Supporter",
+    "effect_description": "Both players shuffle their hands into their decks and draw cards equal to their remaining Prize cards."
+  },
+  {
+    "name": "Nest Ball",
+    "card_type": "Trainer",
+    "trainer_type": "Item",
+    "effect_description": "Search your deck for a Basic Pokémon and put it onto your Bench. Then, shuffle your deck."
+  },
+  {
+    "name": "Ultra Ball",
+    "card_type": "Trainer",
+    "trainer_type": "Item",
+    "effect_description": "Discard 2 cards from your hand. Search your deck for a Pokémon, reveal it, and put it into your hand. Then, shuffle your deck."
+  },
+  {
+    "name": "Switch",
+    "card_type": "Trainer",
+    "trainer_type": "Item",
+    "effect_description": "Switch your Active Pokémon with 1 of your Benched Pokémon."
+  },
+  {
+    "name": "Rare Candy",
+    "card_type": "Trainer",
+    "trainer_type": "Item",
+    "effect_description": "Choose 1 of your Basic Pokémon in play. Evolve it directly into a Stage 2 Pokémon from your hand."
+  },
+  {
+    "name": "Bravery Charm",
+    "card_type": "Trainer",
+    "trainer_type": "Tool",
+    "tool_hp_boost": 50,
+    "tool_condition": "Basic",
+    "effect_description": "The Basic Pokémon this card is attached to gets +50 HP."
+  },
+  {
+    "name": "Maximum Belt",
+    "card_type": "Trainer",
+    "trainer_type": "Tool",
+    "tool_damage_boost": 50,
+    "tool_target": "ex",
+    "effect_description": "Attacks used by the Pokémon this card is attached to do 50 more damage to the opponent's Pokémon ex."
+  },
+  {
+    "name": "Artazon",
+    "card_type": "Trainer",
+    "trainer_type": "Stadium",
+    "effect_description": "Once during each player's turn, that player may search their deck for a Basic Pokémon without a Rule Box and put it onto their Bench. Then, shuffle their deck."
   },
   {
     "name": "Lightning Energy",

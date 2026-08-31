@@ -17,8 +17,25 @@ run_simulation = game_engine.run_simulation
 
 def generate_logs():
     factory = CardFactory('cards.json')
-    deck1 = ["Pikachu"] * 10 + ["Professor's Research"] * 4 + ["Lightning Energy"] * 10
-    deck2 = ["Charmander"] * 10 + ["Charmeleon"] * 5 + ["Professor's Research"] * 4 + ["Fire Energy"] * 10
+    deck1 = (
+        ["Pikachu ex"] * 4 +
+        ["Pikachu"] * 6 +
+        ["Nest Ball"] * 4 +
+        ["Bravery Charm"] * 2 +
+        ["Professor's Research"] * 4 +
+        ["Boss's Orders"] * 2 +
+        ["Lightning Energy"] * 12
+    )
+    deck2 = (
+        ["Charmander"] * 6 +
+        ["Charmeleon"] * 4 +
+        ["Charizard ex"] * 3 +
+        ["Rare Candy"] * 3 +
+        ["Ultra Ball"] * 4 +
+        ["Artazon"] * 2 +
+        ["Professor's Research"] * 4 +
+        ["Fire Energy"] * 10
+    )
 
     # 1. Generate Verbose Game Log
     print("\n" + "="*80)
