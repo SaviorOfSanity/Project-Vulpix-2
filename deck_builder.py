@@ -338,7 +338,54 @@ class DeckBuilder:
                             break
 
         # Select the ultimate counter archetype based on matchup mechanics
-        if target_primary_type == "Fire" or "Charizard" in target_name or "Ceruledge" in target_name:
+        if "Dragapult" in target_name:
+            counter_atk = "Cornerstone Mask Ogerpon ex"
+            ace_spec = "Hero's Cape"
+            strategy_note = (
+                "Dragapult ex World Championship Counter Strategy:\n"
+                "• Cornerstone Stance completely blocks damage from Pokémon with Abilities.\n"
+                "• Hero's Cape pushes your attacker out of Phantom Dive (200 + 60 bench) range, turning the 2-prize trade decisively in your favor."
+            )
+        elif "Teal Mask" in target_name or "Clefairy" in target_name:
+            counter_atk = "Ceruledge ex"
+            ace_spec = "Prime Catcher"
+            strategy_note = (
+                "Teal Mask / Lillie's Clefairy Rainbow Swarm Counter Strategy:\n"
+                "• Exploits Fire Weakness on Teal Mask Ogerpon ex for easy 2-prize KOs.\n"
+                "• Prime Catcher gusts Lillie's Clefairy ex off the 8-Pokémon bench to collapse their energy discount engine."
+            )
+        elif "Zoroark" in target_name:
+            counter_atk = "Crustle"
+            ace_spec = "Hero's Cape"
+            strategy_note = (
+                "N's Zoroark ex Championship Counter Strategy:\n"
+                "• Exploits Grass Weakness on N's Zorua and N's Zoroark ex for 260+ damage Crabhammer 1HKOs.\n"
+                "• Crustle's Solid Rock ability (-30 damage) and 1-prize status creates an impossible prize race for Zoroark."
+            )
+        elif "Alakazam" in target_name or "Slowking" in target_name:
+            counter_atk = "N's Zoroark ex"
+            ace_spec = "Unfair Stamp"
+            strategy_note = (
+                "Alakazam / Slowking Bench-Attack Counter Strategy:\n"
+                "• Exploits Darkness Weakness on Abra, Kadabra, Alakazam, and Slowking for instant 1HKOs.\n"
+                "• Unfair Stamp reduces opponent's hand to 2 cards, shutting down Dudunsparce and Seek Inspiration draw engines."
+            )
+        elif "Excadrill" in target_name or "Metang" in target_name:
+            counter_atk = "Ceruledge ex"
+            ace_spec = "Grand Tree"
+            strategy_note = (
+                "Mega Excadrill / Metang Metal Acceleration Counter Strategy:\n"
+                "• Exploits Fire Weakness across the entire Drilbur, Excadrill, Beldum, and Metang line for doubled damage.\n"
+                "• Grand Tree enables instant Turn 1 evolution to KO opposing Beldums before Metal Maker can accelerate."
+            )
+        elif "Crustle" in target_name:
+            counter_atk = "Ceruledge ex"
+            ace_spec = "Secret Box"
+            strategy_note = (
+                "Crustle Solid Rock Counter Strategy:\n"
+                "• Overwhelms Crustle's -30 damage reduction by exploiting Fire Weakness for 500+ damage Abyssal Flames."
+            )
+        elif target_primary_type == "Fire" or "Charizard" in target_name:
             counter_atk = "Terapagos ex"
             ace_spec = "Neutral Center"
             strategy_note = (
@@ -353,14 +400,6 @@ class DeckBuilder:
                 "Gardevoir Matchup Counter Strategy:\n"
                 "• Employs high damage speed via Abyssal Flames (300+ damage with discarded energies) to 1HKO Gardevoir ex (310 HP).\n"
                 "• Grand Tree accelerates Charcadet directly to Ceruledge ex by Turn 1-2 to outpace Gardevoir's setup."
-            )
-        elif target_primary_type in ("Colorless", "Dragon") or "Terapagos" in target_name or "Raging Bolt" in target_name or "Dragapult" in target_name:
-            counter_atk = "Ceruledge ex"
-            ace_spec = "Prime Catcher"
-            strategy_note = (
-                "Dragon / Colorless Matchup Counter Strategy:\n"
-                "• Prime Catcher gusts vulnerable high-value targets (Squawkabilly, Fezandipiti, Kirlia) on Turn 1-2.\n"
-                "• Overwhelms high HP targets before they can stage multi-turn energy accelerations."
             )
         else:
             counter_atk = "Ceruledge ex"
@@ -555,7 +594,14 @@ class AntiMetaOptimizer:
             ("Raging Bolt ex", "Dragon", ["Prime Catcher", "Hero's Cape"]),
             ("Miraidon ex", "Lightning", ["Prime Catcher"]),
             ("Gholdengo ex", "Metal", ["Prime Catcher", "Neutral Center"]),
-            ("Dragapult ex", "Dragon", ["Prime Catcher", "Hero's Cape"])
+            ("Dragapult ex", "Dragon", ["Prime Catcher", "Hero's Cape"]),
+            ("Teal Mask Ogerpon ex", "Grass", ["Prime Catcher", "Secret Box"]),
+            ("N's Zoroark ex", "Darkness", ["Unfair Stamp", "Prime Catcher"]),
+            ("Alakazam", "Psychic", ["Hero's Cape", "Secret Box"]),
+            ("Slowking", "Psychic", ["Secret Box", "Hero's Cape"]),
+            ("Mega Excadrill ex", "Metal", ["Prime Catcher", "Grand Tree"]),
+            ("Crustle", "Grass", ["Hero's Cape", "Neutral Center"]),
+            ("Cornerstone Mask Ogerpon ex", "Fighting", ["Hero's Cape", "Neutral Center"])
         ]
 
         best_score = -1.0

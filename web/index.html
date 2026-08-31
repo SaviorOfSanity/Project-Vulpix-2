@@ -357,40 +357,76 @@
 
         <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
           
-          <!-- Field Sliders -->
-          <div class="space-y-4 glass-card rounded-2xl p-5 text-xs">
-            <h3 class="font-bold text-slate-200 text-sm">Predicted Field Distribution</h3>
+          <!-- Field Sliders & Quick Presets -->
+          <div class="space-y-3 glass-card rounded-2xl p-5 text-xs">
+            <div class="flex items-center justify-between">
+              <h3 class="font-bold text-slate-200 text-sm">Predicted Field Distribution</h3>
+            </div>
+
+            <!-- Quick Championship Presets -->
+            <div class="flex gap-2 pt-1 pb-2">
+              <button onclick="applyWorldsPreset('day1')" class="flex-1 py-1.5 px-2 rounded-lg bg-indigo-600/30 hover:bg-indigo-600/50 border border-indigo-500/40 text-[11px] font-bold text-indigo-300 transition">
+                🏆 Worlds Day 1
+              </button>
+              <button onclick="applyWorldsPreset('day2')" class="flex-1 py-1.5 px-2 rounded-lg bg-purple-600/30 hover:bg-purple-600/50 border border-purple-500/40 text-[11px] font-bold text-purple-300 transition">
+                🏆 Worlds Day 2
+              </button>
+            </div>
             
             <div class="space-y-1">
               <div class="flex justify-between text-slate-300">
-                <span>Charizard ex Share</span>
-                <span id="slider-cz-val" class="font-mono font-bold text-amber-400">40%</span>
+                <span>Dragapult ex Share</span>
+                <span id="slider-dp-val" class="font-mono font-bold text-indigo-400">43%</span>
               </div>
-              <input type="range" id="slider-cz" min="0" max="100" value="40" oninput="document.getElementById('slider-cz-val').textContent = this.value + '%'" class="w-full accent-amber-500">
+              <input type="range" id="slider-dp" min="0" max="100" value="43" oninput="document.getElementById('slider-dp-val').textContent = this.value + '%'" class="w-full accent-indigo-500">
             </div>
 
             <div class="space-y-1">
               <div class="flex justify-between text-slate-300">
-                <span>Gardevoir ex Share</span>
-                <span id="slider-gd-val" class="font-mono font-bold text-purple-400">30%</span>
+                <span>Teal Mask / Lillie's Clefairy</span>
+                <span id="slider-tm-val" class="font-mono font-bold text-emerald-400">11%</span>
               </div>
-              <input type="range" id="slider-gd" min="0" max="100" value="30" oninput="document.getElementById('slider-gd-val').textContent = this.value + '%'" class="w-full accent-purple-500">
+              <input type="range" id="slider-tm" min="0" max="100" value="11" oninput="document.getElementById('slider-tm-val').textContent = this.value + '%'" class="w-full accent-emerald-500">
             </div>
 
             <div class="space-y-1">
               <div class="flex justify-between text-slate-300">
-                <span>Ceruledge ex Share</span>
-                <span id="slider-cl-val" class="font-mono font-bold text-rose-400">30%</span>
+                <span>N's Zoroark ex Share</span>
+                <span id="slider-zr-val" class="font-mono font-bold text-slate-400">8%</span>
               </div>
-              <input type="range" id="slider-cl" min="0" max="100" value="30" oninput="document.getElementById('slider-cl-val').textContent = this.value + '%'" class="w-full accent-rose-500">
+              <input type="range" id="slider-zr" min="0" max="100" value="8" oninput="document.getElementById('slider-zr-val').textContent = this.value + '%'" class="w-full accent-slate-500">
             </div>
 
             <div class="space-y-1">
               <div class="flex justify-between text-slate-300">
-                <span>Terapagos ex Share</span>
-                <span id="slider-tp-val" class="font-mono font-bold text-sky-400">0%</span>
+                <span>Alakazam / Dudunsparce</span>
+                <span id="slider-ak-val" class="font-mono font-bold text-purple-400">7%</span>
               </div>
-              <input type="range" id="slider-tp" min="0" max="100" value="0" oninput="document.getElementById('slider-tp-val').textContent = this.value + '%'" class="w-full accent-sky-500">
+              <input type="range" id="slider-ak" min="0" max="100" value="7" oninput="document.getElementById('slider-ak-val').textContent = this.value + '%'" class="w-full accent-purple-500">
+            </div>
+
+            <div class="space-y-1">
+              <div class="flex justify-between text-slate-300">
+                <span>Slowking Share</span>
+                <span id="slider-sk-val" class="font-mono font-bold text-pink-400">6%</span>
+              </div>
+              <input type="range" id="slider-sk" min="0" max="100" value="6" oninput="document.getElementById('slider-sk-val').textContent = this.value + '%'" class="w-full accent-pink-500">
+            </div>
+
+            <div class="space-y-1">
+              <div class="flex justify-between text-slate-300">
+                <span>Mega Excadrill / Crustle</span>
+                <span id="slider-ex-val" class="font-mono font-bold text-amber-400">5%</span>
+              </div>
+              <input type="range" id="slider-ex" min="0" max="100" value="5" oninput="document.getElementById('slider-ex-val').textContent = this.value + '%'" class="w-full accent-amber-500">
+            </div>
+
+            <div class="space-y-1">
+              <div class="flex justify-between text-slate-300">
+                <span>Charizard / Gardevoir (Other)</span>
+                <span id="slider-cz-val" class="font-mono font-bold text-sky-400">20%</span>
+              </div>
+              <input type="range" id="slider-cz" min="0" max="100" value="20" oninput="document.getElementById('slider-cz-val').textContent = this.value + '%'" class="w-full accent-sky-500">
             </div>
 
             <button id="btn-run-antimeta" onclick="runAntiMetaOptimizer()" class="w-full mt-3 py-3 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 font-bold text-white shadow-lg shadow-emerald-600/30 flex items-center justify-center gap-2 transition">

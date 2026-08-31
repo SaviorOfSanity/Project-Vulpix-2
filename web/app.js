@@ -458,23 +458,65 @@ function copyDeckText(textareaId) {
 // -------------------------------------------------------------
 // TAB 3: ANTI-META EV TOURNAMENT OPTIMIZER
 // -------------------------------------------------------------
-async function runAntiMetaOptimizer() {
-  const czShare = parseFloat(document.getElementById('slider-cz').value) / 100;
-  const gdShare = parseFloat(document.getElementById('slider-gd').value) / 100;
-  const clShare = parseFloat(document.getElementById('slider-cl').value) / 100;
-  const tpShare = parseFloat(document.getElementById('slider-tp').value) / 100;
+function applyWorldsPreset(preset) {
+  if (preset === 'day1') {
+    document.getElementById('slider-dp').value = 43;
+    document.getElementById('slider-dp-val').textContent = '43%';
+    document.getElementById('slider-tm').value = 11;
+    document.getElementById('slider-tm-val').textContent = '11%';
+    document.getElementById('slider-zr').value = 8;
+    document.getElementById('slider-zr-val').textContent = '8%';
+    document.getElementById('slider-ak').value = 7;
+    document.getElementById('slider-ak-val').textContent = '7%';
+    document.getElementById('slider-sk').value = 6;
+    document.getElementById('slider-sk-val').textContent = '6%';
+    document.getElementById('slider-ex').value = 4;
+    document.getElementById('slider-ex-val').textContent = '4%';
+    document.getElementById('slider-cz').value = 21;
+    document.getElementById('slider-cz-val').textContent = '21%';
+  } else if (preset === 'day2') {
+    document.getElementById('slider-dp').value = 30;
+    document.getElementById('slider-dp-val').textContent = '30%';
+    document.getElementById('slider-tm').value = 14;
+    document.getElementById('slider-tm-val').textContent = '14%';
+    document.getElementById('slider-zr').value = 8;
+    document.getElementById('slider-zr-val').textContent = '8%';
+    document.getElementById('slider-ak').value = 10;
+    document.getElementById('slider-ak-val').textContent = '10%';
+    document.getElementById('slider-sk').value = 8;
+    document.getElementById('slider-sk-val').textContent = '8%';
+    document.getElementById('slider-ex').value = 6;
+    document.getElementById('slider-ex-val').textContent = '6%';
+    document.getElementById('slider-cz').value = 24;
+    document.getElementById('slider-cz-val').textContent = '24%';
+  }
+}
 
-  const total = czShare + gdShare + clShare + tpShare;
+async function runAntiMetaOptimizer() {
+  const dpShare = parseFloat(document.getElementById('slider-dp').value) / 100;
+  const tmShare = parseFloat(document.getElementById('slider-tm').value) / 100;
+  const zrShare = parseFloat(document.getElementById('slider-zr').value) / 100;
+  const akShare = parseFloat(document.getElementById('slider-ak').value) / 100;
+  const skShare = parseFloat(document.getElementById('slider-sk').value) / 100;
+  const exShare = parseFloat(document.getElementById('slider-ex').value) / 100;
+  const czShare = parseFloat(document.getElementById('slider-cz').value) / 100;
+
+  const total = dpShare + tmShare + zrShare + akShare + skShare + exShare + czShare;
   if (total <= 0) {
     alert("Please set at least one expected meta share percentage.");
     return;
   }
 
   const metaDist = {
-    "Charizard ex": czShare / total,
-    "Gardevoir ex": gdShare / total,
-    "Ceruledge ex": clShare / total,
-    "Terapagos ex": tpShare / total
+    "Dragapult ex": dpShare / total,
+    "Teal Mask / Lillie's Clefairy": tmShare / total,
+    "N's Zoroark ex": zrShare / total,
+    "Alakazam / Dudunsparce": akShare / total,
+    "Slowking": skShare / total,
+    "Mega Excadrill ex / Metang": (exShare * 0.6) / total,
+    "Crustle": (exShare * 0.4) / total,
+    "Charizard ex": (czShare * 0.5) / total,
+    "Gardevoir ex": (czShare * 0.5) / total
   };
 
   const btn = document.getElementById('btn-run-antimeta');

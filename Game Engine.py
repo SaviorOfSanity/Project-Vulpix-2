@@ -2243,10 +2243,10 @@ STANDARD_ARCHETYPES = {
         ["Professor's Research"] * 4 +
         ["Boss's Orders"] * 2 +
         ["Iono"] * 3 +
-        ["Fire Energy"] * 8 +
+        ["Fire Energy"] * 9 +
         ["Psychic Energy"] * 8 +
         ["Jet Energy"] * 4 +
-        ["Mist Energy"] * 5
+        ["Mist Energy"] * 4
     ),
     "Raging Bolt ex": (
         ["Raging Bolt ex"] * 4 +
@@ -2312,6 +2312,112 @@ STANDARD_ARCHETYPES = {
         ["Boss's Orders"] * 2 +
         ["Fire Energy"] * 21 +
         ["Double Turbo Energy"] * 4
+    ),
+    "Teal Mask / Lillie's Clefairy": (
+        ["Teal Mask Ogerpon ex"] * 4 +
+        ["Lillie's Clefairy ex"] * 4 +
+        ["Mega Kangaskhan ex"] * 2 +
+        ["Latias ex"] * 2 +
+        ["Fezandipiti ex"] * 1 +
+        ["Koraidon ex"] * 1 +
+        ["Area Zero Underdepths"] * 3 +
+        ["Crispin"] * 4 +
+        ["Lillie's Pearl"] * 2 +
+        ["Wondrous Patch"] * 3 +
+        ["Prime Catcher"] * 1 +
+        ["Ultra Ball"] * 4 +
+        ["Nest Ball"] * 4 +
+        ["Super Rod"] * 2 +
+        ["Boss's Orders"] * 2 +
+        ["Grass Energy"] * 10 +
+        ["Psychic Energy"] * 7 +
+        ["Fighting Energy"] * 4
+    ),
+    "N's Zoroark ex": (
+        ["N's Zorua"] * 4 +
+        ["N's Zoroark ex"] * 3 +
+        ["Fezandipiti ex"] * 2 +
+        ["Munkidori"] * 2 +
+        ["Unfair Stamp"] * 1 +
+        ["Buddy-Buddy Poffin"] * 4 +
+        ["Ultra Ball"] * 4 +
+        ["Nest Ball"] * 2 +
+        ["Super Rod"] * 2 +
+        ["Night Stretcher"] * 2 +
+        ["Professor's Research"] * 4 +
+        ["Iono"] * 3 +
+        ["Boss's Orders"] * 2 +
+        ["Darkness Energy"] * 17 +
+        ["Psychic Energy"] * 4 +
+        ["Double Turbo Energy"] * 4
+    ),
+    "Alakazam / Dudunsparce": (
+        ["Abra"] * 4 +
+        ["Kadabra"] * 1 +
+        ["Alakazam"] * 3 +
+        ["Dunsparce"] * 4 +
+        ["Dudunsparce"] * 3 +
+        ["Fezandipiti ex"] * 1 +
+        ["Hero's Cape"] * 1 +
+        ["Rare Candy"] * 4 +
+        ["Buddy-Buddy Poffin"] * 4 +
+        ["Ultra Ball"] * 4 +
+        ["Super Rod"] * 2 +
+        ["Counter Catcher"] * 2 +
+        ["Professor's Research"] * 4 +
+        ["Iono"] * 3 +
+        ["Boss's Orders"] * 2 +
+        ["Psychic Energy"] * 14 +
+        ["Double Turbo Energy"] * 4
+    ),
+    "Slowking": (
+        ["Slowpoke"] * 4 +
+        ["Slowking"] * 4 +
+        ["Fezandipiti ex"] * 2 +
+        ["Munkidori"] * 2 +
+        ["Drifloon"] * 2 +
+        ["Secret Box"] * 1 +
+        ["Buddy-Buddy Poffin"] * 4 +
+        ["Ultra Ball"] * 4 +
+        ["Nest Ball"] * 2 +
+        ["Super Rod"] * 2 +
+        ["Professor's Research"] * 4 +
+        ["Iono"] * 3 +
+        ["Boss's Orders"] * 2 +
+        ["Counter Catcher"] * 2 +
+        ["Psychic Energy"] * 16 +
+        ["Darkness Energy"] * 6
+    ),
+    "Mega Excadrill ex / Metang": (
+        ["Drilbur"] * 4 +
+        ["Mega Excadrill ex"] * 3 +
+        ["Beldum"] * 4 +
+        ["Metang"] * 4 +
+        ["Fezandipiti ex"] * 1 +
+        ["Prime Catcher"] * 1 +
+        ["Buddy-Buddy Poffin"] * 4 +
+        ["Ultra Ball"] * 4 +
+        ["Nest Ball"] * 2 +
+        ["Super Rod"] * 2 +
+        ["Professor's Research"] * 4 +
+        ["Iono"] * 3 +
+        ["Boss's Orders"] * 2 +
+        ["Metal Energy"] * 22
+    ),
+    "Crustle": (
+        ["Dwebble"] * 4 +
+        ["Crustle"] * 4 +
+        ["Teal Mask Ogerpon ex"] * 2 +
+        ["Fezandipiti ex"] * 1 +
+        ["Hero's Cape"] * 1 +
+        ["Bug Catching Set"] * 4 +
+        ["Buddy-Buddy Poffin"] * 4 +
+        ["Ultra Ball"] * 4 +
+        ["Super Rod"] * 2 +
+        ["Professor's Research"] * 4 +
+        ["Iono"] * 3 +
+        ["Boss's Orders"] * 2 +
+        ["Grass Energy"] * 25
     )
 }
 

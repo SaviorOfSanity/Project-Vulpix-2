@@ -1580,5 +1580,337 @@
     "card_type": "Trainer",
     "trainer_type": "Tool",
     "effect_description": "The Pokémon this card is attached to takes 30 less damage from attacks from your opponent's Pokémon."
+  },
+  {
+    "name": "N's Zorua",
+    "card_type": "Pokemon",
+    "stage": "Basic",
+    "evolves_from": null,
+    "element": "Darkness",
+    "weakness": "Grass",
+    "resistance": null,
+    "hp": 70,
+    "prize_yield": 1,
+    "is_rule_box": false,
+    "attacks": [
+      {
+        "name": "Scratch",
+        "cost": ["Darkness"],
+        "damage": 20
+      }
+    ],
+    "retreat_cost": 1
+  },
+  {
+    "name": "N's Zoroark ex",
+    "card_type": "Pokemon",
+    "stage": "Stage 1",
+    "evolves_from": "N's Zorua",
+    "element": "Darkness",
+    "weakness": "Grass",
+    "resistance": null,
+    "hp": 280,
+    "prize_yield": 2,
+    "is_rule_box": true,
+    "ability": {
+      "name": "Night Joker",
+      "type": "passive",
+      "description": "This Pokémon can use the attacks of any Pokémon in your discard pile that has N in its name."
+    },
+    "attacks": [
+      {
+        "name": "Night Slash",
+        "cost": ["Darkness", "Darkness", "Colorless"],
+        "damage": 180
+      }
+    ],
+    "retreat_cost": 2
+  },
+  {
+    "name": "Abra",
+    "card_type": "Pokemon",
+    "stage": "Basic",
+    "evolves_from": null,
+    "element": "Psychic",
+    "weakness": "Darkness",
+    "resistance": "Fighting",
+    "hp": 50,
+    "prize_yield": 1,
+    "is_rule_box": false,
+    "attacks": [
+      {
+        "name": "Teleportation",
+        "cost": ["Psychic"],
+        "damage": 10
+      }
+    ],
+    "retreat_cost": 1
+  },
+  {
+    "name": "Kadabra",
+    "card_type": "Pokemon",
+    "stage": "Stage 1",
+    "evolves_from": "Abra",
+    "element": "Psychic",
+    "weakness": "Darkness",
+    "resistance": "Fighting",
+    "hp": 80,
+    "prize_yield": 1,
+    "is_rule_box": false,
+    "attacks": [
+      {
+        "name": "Psybeam",
+        "cost": ["Psychic", "Colorless"],
+        "damage": 50
+      }
+    ],
+    "retreat_cost": 1
+  },
+  {
+    "name": "Alakazam",
+    "card_type": "Pokemon",
+    "stage": "Stage 2",
+    "evolves_from": "Kadabra",
+    "element": "Psychic",
+    "weakness": "Darkness",
+    "resistance": "Fighting",
+    "hp": 140,
+    "prize_yield": 1,
+    "is_rule_box": false,
+    "ability": {
+      "name": "Dimensional Hand",
+      "type": "passive",
+      "description": "This Pokémon can use its attacks even while on the Bench."
+    },
+    "attacks": [
+      {
+        "name": "Mind Jack",
+        "cost": ["Psychic", "Psychic"],
+        "damage": 90,
+        "bonus_damage_per_benched_opp": 30
+      }
+    ],
+    "retreat_cost": 1
+  },
+  {
+    "name": "Dunsparce",
+    "card_type": "Pokemon",
+    "stage": "Basic",
+    "evolves_from": null,
+    "element": "Colorless",
+    "weakness": "Fighting",
+    "resistance": null,
+    "hp": 60,
+    "prize_yield": 1,
+    "is_rule_box": false,
+    "attacks": [
+      {
+        "name": "Dig Deep",
+        "cost": ["Colorless"],
+        "damage": 0
+      }
+    ],
+    "retreat_cost": 1
+  },
+  {
+    "name": "Dudunsparce",
+    "card_type": "Pokemon",
+    "stage": "Stage 1",
+    "evolves_from": "Dunsparce",
+    "element": "Colorless",
+    "weakness": "Fighting",
+    "resistance": null,
+    "hp": 140,
+    "prize_yield": 1,
+    "is_rule_box": false,
+    "ability": {
+      "name": "Run Away Draw",
+      "type": "activated",
+      "description": "Once during your turn, you may draw 3 cards. If you do, shuffle this Pokémon and all attached cards into your deck."
+    },
+    "attacks": [
+      {
+        "name": "Land Crush",
+        "cost": ["Colorless", "Colorless", "Colorless"],
+        "damage": 90
+      }
+    ],
+    "retreat_cost": 3
+  },
+  {
+    "name": "Slowpoke",
+    "card_type": "Pokemon",
+    "stage": "Basic",
+    "evolves_from": null,
+    "element": "Psychic",
+    "weakness": "Darkness",
+    "resistance": "Fighting",
+    "hp": 70,
+    "prize_yield": 1,
+    "is_rule_box": false,
+    "attacks": [
+      {
+        "name": "Yawn",
+        "cost": ["Colorless"],
+        "damage": 0
+      }
+    ],
+    "retreat_cost": 2
+  },
+  {
+    "name": "Slowking",
+    "card_type": "Pokemon",
+    "stage": "Stage 1",
+    "evolves_from": "Slowpoke",
+    "element": "Psychic",
+    "weakness": "Darkness",
+    "resistance": "Fighting",
+    "hp": 120,
+    "prize_yield": 1,
+    "is_rule_box": false,
+    "attacks": [
+      {
+        "name": "Seek Inspiration",
+        "cost": ["Psychic"],
+        "damage": 0,
+        "effect": "Discard top card of deck; if it is a Pokémon, use one of its attacks."
+      },
+      {
+        "name": "Wise Headbutt",
+        "cost": ["Psychic", "Colorless"],
+        "damage": 130
+      }
+    ],
+    "retreat_cost": 2
+  },
+  {
+    "name": "Drilbur",
+    "card_type": "Pokemon",
+    "stage": "Basic",
+    "evolves_from": null,
+    "element": "Metal",
+    "weakness": "Fire",
+    "resistance": "Grass",
+    "hp": 70,
+    "prize_yield": 1,
+    "is_rule_box": false,
+    "attacks": [
+      {
+        "name": "Scratch",
+        "cost": ["Metal"],
+        "damage": 20
+      }
+    ],
+    "retreat_cost": 1
+  },
+  {
+    "name": "Mega Excadrill ex",
+    "card_type": "Pokemon",
+    "stage": "Stage 1",
+    "evolves_from": "Drilbur",
+    "element": "Metal",
+    "weakness": "Fire",
+    "resistance": "Grass",
+    "hp": 280,
+    "prize_yield": 2,
+    "is_rule_box": true,
+    "attacks": [
+      {
+        "name": "Giga Drill Breaker",
+        "cost": ["Metal", "Metal", "Colorless"],
+        "damage": 260
+      }
+    ],
+    "retreat_cost": 3
+  },
+  {
+    "name": "Beldum",
+    "card_type": "Pokemon",
+    "stage": "Basic",
+    "evolves_from": null,
+    "element": "Metal",
+    "weakness": "Fire",
+    "resistance": "Grass",
+    "hp": 60,
+    "prize_yield": 1,
+    "is_rule_box": false,
+    "attacks": [
+      {
+        "name": "Magnetic Lift",
+        "cost": ["Metal"],
+        "damage": 10
+      }
+    ],
+    "retreat_cost": 1
+  },
+  {
+    "name": "Metang",
+    "card_type": "Pokemon",
+    "stage": "Stage 1",
+    "evolves_from": "Beldum",
+    "element": "Metal",
+    "weakness": "Fire",
+    "resistance": "Grass",
+    "hp": 100,
+    "prize_yield": 1,
+    "is_rule_box": false,
+    "ability": {
+      "name": "Metal Maker",
+      "type": "activated",
+      "description": "Once during your turn, you may look at the top 4 cards of your deck and attach any Basic Metal Energy found to your Pokémon in play."
+    },
+    "attacks": [
+      {
+        "name": "Beam",
+        "cost": ["Metal", "Colorless", "Colorless"],
+        "damage": 60
+      }
+    ],
+    "retreat_cost": 2
+  },
+  {
+    "name": "Dwebble",
+    "card_type": "Pokemon",
+    "stage": "Basic",
+    "evolves_from": null,
+    "element": "Grass",
+    "weakness": "Fire",
+    "resistance": null,
+    "hp": 70,
+    "prize_yield": 1,
+    "is_rule_box": false,
+    "attacks": [
+      {
+        "name": "Bug Bite",
+        "cost": ["Grass"],
+        "damage": 20
+      }
+    ],
+    "retreat_cost": 1
+  },
+  {
+    "name": "Crustle",
+    "card_type": "Pokemon",
+    "stage": "Stage 1",
+    "evolves_from": "Dwebble",
+    "element": "Grass",
+    "weakness": "Fire",
+    "resistance": null,
+    "hp": 140,
+    "prize_yield": 1,
+    "is_rule_box": false,
+    "ability": {
+      "name": "Solid Rock",
+      "type": "passive",
+      "description": "This Pokémon takes 30 less damage from attacks from your opponent's Pokémon."
+    },
+    "attacks": [
+      {
+        "name": "Crabhammer",
+        "cost": ["Grass", "Colorless", "Colorless"],
+        "damage": 130
+      }
+    ],
+    "retreat_cost": 2
   }
 ]
