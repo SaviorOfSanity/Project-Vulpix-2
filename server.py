@@ -92,6 +92,10 @@ class VulpixAPIHandler(SimpleHTTPRequestHandler):
                 self.handle_parse_deck(payload)
             elif self.path == '/api/build_scratch_deck':
                 self.handle_build_scratch_deck(payload)
+            elif self.path == '/api/target_counter_deck':
+                self.handle_target_counter_deck(payload)
+            elif self.path == '/api/generate_rogue_deck':
+                self.handle_generate_rogue_deck(payload)
             elif self.path == '/api/run_gauntlet':
                 self.handle_run_gauntlet(payload)
             elif self.path == '/api/optimize_anti_meta':
@@ -156,6 +160,66 @@ class VulpixAPIHandler(SimpleHTTPRequestHandler):
             "ace_spec": ace_spec or (comp["ace_specs"][0] if comp["ace_specs"] else "None"),
             "ptcgl_text": ptcgl_text,
             "decklist": deck,
+            "composition": {
+                "pokemon": pokemon_count,
+                "trainers": trainer_count,
+                "energy": energy_count,
+                "ace_specs": comp["ace_specs"]
+            }
+        })
+
+    def handle_target_counter_deck(self, payload: Dict):
+        target_name = payload.get("target_name", "Charizard ex")
+        target_text = payload.get("target_deck_text", "")
+
+        if target_text.strip():
+            try:
+                target_deck = BUILDER.import_from_ptcgl(target_text)
+                res = BUILDER.build_targeted_counter_deck(target_deck)
+            except Exception:
+                res = BUILDER.build_targeted_counter_deck(target_name)
+        else:
+            res = BUILDER.build_targeted_counter_deck(target_name)
+
+        comp = PLANNER.analyze_deck_composition(res["counter_decklist"])
+        pokemon_count = sum(count for _, count, _ in comp["pokemon"])
+        energy_count = sum(1 for c in res["counter_decklist"] if FACTORY.cards_by_name.get(c, {}).get("card_type") == "Energy")
+        trainer_count = 60 - pokemon_count - energy_count
+
+        self._send_json_response({
+            "success": True,
+            "target_deck": target_name,
+            "counter_deck_name": res["counter_deck_name"],
+            "primary_attacker": res["primary_attacker"],
+            "ace_spec": res["ace_spec"],
+            "strategy_rationale": res["strategy_rationale"],
+            "ptcgl_text": res["ptcgl_text"],
+            "decklist": res["counter_decklist"],
+            "composition": {
+                "pokemon": pokemon_count,
+                "trainers": trainer_count,
+                "energy": energy_count,
+                "ace_specs": comp["ace_specs"]
+            }
+        })
+
+    def handle_generate_rogue_deck(self, payload: Dict):
+        res = BUILDER.innovate_rogue_anti_meta_deck()
+        comp = PLANNER.analyze_deck_composition(res["decklist"])
+
+        pokemon_count = sum(count for _, count, _ in comp["pokemon"])
+        energy_count = sum(1 for c in res["decklist"] if FACTORY.cards_by_name.get(c, {}).get("card_type") == "Energy")
+        trainer_count = 60 - pokemon_count - energy_count
+
+        self._send_json_response({
+            "success": True,
+            "rogue_name": res["rogue_name"],
+            "primary_attacker": res["primary_attacker"],
+            "ace_spec": res["ace_spec"],
+            "archetype_concept": res["archetype_concept"],
+            "why_it_wins": res["why_it_wins"],
+            "ptcgl_text": res["ptcgl_text"],
+            "decklist": res["decklist"],
             "composition": {
                 "pokemon": pokemon_count,
                 "trainers": trainer_count,

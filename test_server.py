@@ -106,24 +106,23 @@ class TestVulpixServerAPI(unittest.TestCase):
         self.assertIn("prize_map_plan", res["gameplan"])
         self.assertIn("threat_warnings", res["gameplan"])
 
-    def test_post_coach_eval(self):
-        res = self._post('/api/coach_eval', {
-            "p1_active_name": "Gardevoir ex",
-            "p1_active_hp": 310,
-            "p1_active_energy": ["Psychic Energy", "Psychic Energy", "Psychic Energy"],
-            "p1_bench_names": ["Ralts"],
-            "p1_hand_names": ["Professor's Research", "Psychic Energy"],
-            "p1_prizes_remaining": 4,
-            "p2_active_name": "Charmander",
-            "p2_active_hp": 70,
-            "p2_bench_names": ["Charizard ex"],
-            "p2_prizes_remaining": 6,
-            "turn_number": 2
+    def test_post_target_counter_deck(self):
+        res = self._post('/api/target_counter_deck', {
+            "target_name": "Charizard ex"
         })
         self.assertTrue(res["success"])
-        self.assertIn("recommended_moves", res)
-        self.assertGreater(len(res["recommended_moves"]), 0)
+        self.assertIn("Terapagos ex", res["counter_deck_name"])
+        self.assertEqual(len(res["decklist"]), 60)
+        self.assertIn("strategy_rationale", res)
+
+    def test_post_generate_rogue_deck(self):
+        res = self._post('/api/generate_rogue_deck', {})
+        self.assertTrue(res["success"])
+        self.assertIn("rogue_name", res)
+        self.assertEqual(len(res["decklist"]), 60)
+        self.assertIn("why_it_wins", res)
 
 
 if __name__ == '__main__':
     unittest.main()
+

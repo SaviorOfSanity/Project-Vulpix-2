@@ -10,7 +10,7 @@ Features:
 
 import json
 import re
-from typing import List, Dict, Tuple, Optional
+from typing import List, Dict, Tuple, Optional, Any
 
 # Import live game engine
 game_engine = __import__("Game Engine")
@@ -289,6 +289,134 @@ class DeckBuilder:
 
         is_valid, errors = DeckValidator.validate_deck(deck, self.factory)
         return deck
+
+    def build_targeted_counter_deck(
+        self,
+        target_name_or_deck: Any,
+        preferred_style: str = "Hard Counter"
+    ) -> Dict:
+        """
+        Builds a dedicated, customized deck designed specifically to beat a single target archetype.
+        Analyzes the target's type weakness, HP milestones, ability reliance, and prize structure.
+        """
+        target_name = target_name_or_deck if isinstance(target_name_or_deck, str) else "Custom Opponent"
+        target_cards = STANDARD_ARCHETYPES.get(target_name, []) if isinstance(target_name_or_deck, str) else target_name_or_deck
+
+        # Determine target's primary element & structure
+        target_primary_type = "Colorless"
+        target_has_ex = False
+        target_has_stage2 = False
+
+        for cname in target_cards:
+            cdata = self.factory.cards_by_name.get(cname, {})
+            if cdata.get("is_rule_box", False):
+                target_has_ex = True
+            if cdata.get("stage") == "Stage 2":
+                target_has_stage2 = True
+            if cdata.get("attacks"):
+                for atk in cdata.get("attacks", []):
+                    for cost in atk.get("cost", []):
+                        if cost in ("Fire", "Psychic", "Lightning", "Water", "Grass", "Metal", "Darkness", "Dragon"):
+                            target_primary_type = cost
+                            break
+
+        # Select the ultimate counter archetype based on matchup mechanics
+        if target_primary_type == "Fire" or "Charizard" in target_name or "Ceruledge" in target_name:
+            counter_atk = "Terapagos ex"
+            ace_spec = "Neutral Center"
+            strategy_note = (
+                "Fire Matchup Counter Strategy:\n"
+                "• Uses Neutral Center Stadium to completely prevent all attack damage from Pokémon ex.\n"
+                "• Deploys Terapagos ex Crown Opal (180 dmg) to lock out Basic attackers while denying Charizard KO prizes."
+            )
+        elif target_primary_type == "Psychic" or "Gardevoir" in target_name:
+            counter_atk = "Ceruledge ex"
+            ace_spec = "Grand Tree"
+            strategy_note = (
+                "Gardevoir Matchup Counter Strategy:\n"
+                "• Employs high damage speed via Abyssal Flames (300+ damage with discarded energies) to 1HKO Gardevoir ex (310 HP).\n"
+                "• Grand Tree accelerates Charcadet directly to Ceruledge ex by Turn 1-2 to outpace Gardevoir's setup."
+            )
+        elif target_primary_type in ("Colorless", "Dragon") or "Terapagos" in target_name or "Raging Bolt" in target_name or "Dragapult" in target_name:
+            counter_atk = "Ceruledge ex"
+            ace_spec = "Prime Catcher"
+            strategy_note = (
+                "Dragon / Colorless Matchup Counter Strategy:\n"
+                "• Prime Catcher gusts vulnerable high-value targets (Squawkabilly, Fezandipiti, Kirlia) on Turn 1-2.\n"
+                "• Overwhelms high HP targets before they can stage multi-turn energy accelerations."
+            )
+        else:
+            counter_atk = "Ceruledge ex"
+            ace_spec = "Prime Catcher"
+            strategy_note = (
+                "Universal Tempo Counter Strategy:\n"
+                "• Exploits Prime Catcher gusting to eliminate support engines before attackers power up."
+            )
+
+        counter_deck = self.generate_deck_from_scratch(
+            primary_attacker=counter_atk,
+            preferred_ace_spec=ace_spec
+        )
+        ptcgl_text = self.export_to_ptcgl(counter_deck)
+
+        return {
+            "target_deck": target_name,
+            "counter_deck_name": f"{counter_atk} ({ace_spec})",
+            "primary_attacker": counter_atk,
+            "ace_spec": ace_spec,
+            "counter_decklist": counter_deck,
+            "ptcgl_text": ptcgl_text,
+            "strategy_rationale": strategy_note
+        }
+
+    def innovate_rogue_anti_meta_deck(self) -> Dict:
+        """
+        Synthesizes an unexpected, rogue/underground deck designed to catch
+        the top meta decks off guard through prize denial, lockdown, or speed.
+        """
+        import random
+        rogue_concepts = [
+            {
+                "name": "Terapagos Neutral Center Lock",
+                "attacker": "Terapagos ex",
+                "ace_spec": "Neutral Center",
+                "concept": "Prize-Denial Lock",
+                "why_it_wins": "Standard meta decks heavily depend on Pokémon ex (Charizard, Gardevoir, Ceruledge, Raging Bolt). Neutral Center creates absolute attack immunity against ex Pokémon while Crown Opal deals 180 damage."
+            },
+            {
+                "name": "Ceruledge Grand Tree Turbo",
+                "attacker": "Ceruledge ex",
+                "ace_spec": "Grand Tree",
+                "concept": "Turn 1 Instant Chain-Evolution",
+                "why_it_wins": "Standard decks take 2-3 turns to set up Stage 2 lines. Grand Tree evolves Charcadet to Ceruledge ex instantly, enabling 250+ damage Abyssal Flames before the opponent attacks."
+            },
+            {
+                "name": "Gardevoir Hero's Cape Tank",
+                "attacker": "Gardevoir ex",
+                "ace_spec": "Hero's Cape",
+                "concept": "410 HP Unkillable Juggernaut",
+                "why_it_wins": "Hero's Cape pushes Gardevoir ex to an unprecedented 410 HP. No Standard format attacker can 1HKO it without 4+ energy discards, turning the prize trade overwhelmingly in your favor."
+            }
+        ]
+
+        chosen = random.choice(rogue_concepts)
+
+        deck = self.generate_deck_from_scratch(
+            primary_attacker=chosen["attacker"],
+            preferred_ace_spec=chosen["ace_spec"]
+        )
+        ptcgl_text = self.export_to_ptcgl(deck)
+
+        return {
+            "rogue_name": chosen["name"],
+            "primary_attacker": chosen["attacker"],
+            "ace_spec": chosen["ace_spec"],
+            "archetype_concept": chosen["concept"],
+            "why_it_wins": chosen["why_it_wins"],
+            "decklist": deck,
+            "ptcgl_text": ptcgl_text
+        }
+
 
 
 class AntiMetaOptimizer:

@@ -80,6 +80,14 @@ function populateArchetypeDropdowns() {
     });
   }
 
+  const builderTargetSelect = document.getElementById('builder-target-select');
+  if (builderTargetSelect) {
+    builderTargetSelect.innerHTML = '';
+    names.forEach(name => {
+      builderTargetSelect.innerHTML += `<option value="${name}">${name}</option>`;
+    });
+  }
+
   if (planMySelect) {
     planMySelect.innerHTML = '<option value="">-- Use Pasted Deck Above --</option>';
     names.forEach(name => {
@@ -318,6 +326,73 @@ async function generateScratchDeck() {
     document.getElementById('builder-count-tr').textContent = data.composition.trainers;
     document.getElementById('builder-count-nr').textContent = data.composition.energy;
     document.getElementById('builder-ace-badge').textContent = data.ace_spec;
+    document.getElementById('builder-mode-title').textContent = `Synthesized Deck: ${attacker}`;
+    document.getElementById('builder-strategy-box').classList.add('hidden');
+  } catch (err) {
+    alert("Network error: " + err.message);
+  }
+}
+
+async function buildTargetedCounterDeck() {
+  const targetSelect = document.getElementById('builder-target-select');
+  const targetName = targetSelect ? targetSelect.value : "Charizard ex";
+
+  try {
+    const res = await fetch('/api/target_counter_deck', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ target_name: targetName })
+    });
+
+    const data = await res.json();
+    if (!data.success) {
+      alert("Error: " + data.error);
+      return;
+    }
+
+    document.getElementById('builder-deck-output').value = data.ptcgl_text;
+    renderBuilderDonut(data.composition);
+
+    document.getElementById('builder-count-pkmn').textContent = data.composition.pokemon;
+    document.getElementById('builder-count-tr').textContent = data.composition.trainers;
+    document.getElementById('builder-count-nr').textContent = data.composition.energy;
+    document.getElementById('builder-ace-badge').textContent = data.ace_spec;
+
+    document.getElementById('builder-mode-title').textContent = `🎯 Dedicated Counter: ${data.counter_deck_name}`;
+    const stratBox = document.getElementById('builder-strategy-box');
+    stratBox.classList.remove('hidden');
+    document.getElementById('builder-strategy-text').innerHTML = data.strategy_rationale.replace(/\n/g, '<br>');
+  } catch (err) {
+    alert("Network error: " + err.message);
+  }
+}
+
+async function discoverRogueDeck() {
+  try {
+    const res = await fetch('/api/generate_rogue_deck', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({})
+    });
+
+    const data = await res.json();
+    if (!data.success) {
+      alert("Error: " + data.error);
+      return;
+    }
+
+    document.getElementById('builder-deck-output').value = data.ptcgl_text;
+    renderBuilderDonut(data.composition);
+
+    document.getElementById('builder-count-pkmn').textContent = data.composition.pokemon;
+    document.getElementById('builder-count-tr').textContent = data.composition.trainers;
+    document.getElementById('builder-count-nr').textContent = data.composition.energy;
+    document.getElementById('builder-ace-badge').textContent = data.ace_spec;
+
+    document.getElementById('builder-mode-title').textContent = `🎲 Rogue Innovation: ${data.rogue_name}`;
+    const stratBox = document.getElementById('builder-strategy-box');
+    stratBox.classList.remove('hidden');
+    document.getElementById('builder-strategy-text').innerHTML = `<b>Archetype Concept:</b> ${data.archetype_concept}<br><br><b>Why it beats the top meta:</b><br>${data.why_it_wins}`;
   } catch (err) {
     alert("Network error: " + err.message);
   }

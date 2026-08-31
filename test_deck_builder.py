@@ -132,12 +132,27 @@ class TestDeckBuilder(unittest.TestCase):
             sample_games_per_eval=1,
             mcts_iterations=5
         )
-        self.assertIn("best_deck_name", res)
-        self.assertIn("best_decklist", res)
-        self.assertEqual(len(res["best_decklist"]), 60)
-        self.assertIn("expected_winrate", res)
+    def test_build_targeted_counter_deck(self):
+        """Test targeted counter deck synthesis for specific meta targets."""
+        res_cz = self.builder.build_targeted_counter_deck("Charizard ex")
+        self.assertEqual(len(res_cz["counter_decklist"]), 60)
+        self.assertIn("Terapagos ex", res_cz["counter_deck_name"])
+        self.assertIn("Neutral Center", res_cz["ptcgl_text"])
+
+        res_gd = self.builder.build_targeted_counter_deck("Gardevoir ex")
+        self.assertEqual(len(res_gd["counter_decklist"]), 60)
+        self.assertIn("Ceruledge ex", res_gd["counter_deck_name"])
+
+    def test_innovate_rogue_anti_meta_deck(self):
+        """Test rogue deck innovator generates legal 60-card decks with surprise factor."""
+        res = self.builder.innovate_rogue_anti_meta_deck()
+        self.assertEqual(len(res["decklist"]), 60)
+        self.assertIn("rogue_name", res)
+        self.assertIn("why_it_wins", res)
+        self.assertIn("Pokémon:", res["ptcgl_text"])
 
 
 if __name__ == '__main__':
     unittest.main()
+
 

@@ -219,74 +219,124 @@
     </section>
 
     <!-- ========================================================================= -->
-    <!-- TAB 2: DECK BUILDER & SCRATCH ARCHITECT                                  -->
+    <!-- TAB 2: DECK BUILDER, TARGETED COUNTER & ROGUE INNOVATOR                  -->
     <!-- ========================================================================= -->
     <section id="view-builder" class="hidden space-y-6">
       <div class="glass-panel rounded-2xl p-6 shadow-xl space-y-6">
-        <div class="border-b border-slate-800 pb-4">
-          <h2 class="text-base font-bold text-amber-400 flex items-center gap-2">
-            <i data-lucide="hammer" class="w-5 h-5"></i> 60-Card Scratch Deck Generator & Engine Synthesizer
-          </h2>
-          <p class="text-xs text-slate-400 mt-0.5">Input your centerpiece attacker and preferred ACE SPEC to automatically generate a tournament-legal 60-card list.</p>
+        <div class="flex flex-wrap items-center justify-between gap-4 border-b border-slate-800 pb-4">
+          <div>
+            <h2 class="text-base font-bold text-amber-400 flex items-center gap-2">
+              <i data-lucide="hammer" class="w-5 h-5"></i> 60-Card Deck Builder, Targeted Counter & Rogue Innovator
+            </h2>
+            <p class="text-xs text-slate-400 mt-0.5">Build from scratch, synthesize dedicated counters targeting specific meta decks, or discover surprise rogue decks.</p>
+          </div>
+          <div id="builder-mode-title" class="px-3 py-1 rounded-full text-xs font-bold bg-amber-500/20 text-amber-300 border border-amber-500/40">
+            Synthesize Deck
+          </div>
         </div>
 
         <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
           
-          <!-- Generator Form -->
+          <!-- Generator Form & Modes -->
           <div class="space-y-4 text-xs">
-            <div>
-              <label class="text-slate-300 block mb-1 font-semibold">Primary Attacker Name</label>
-              <input type="text" id="builder-attacker-input" value="Ceruledge ex" class="glass-input w-full p-2.5 rounded-xl font-medium" placeholder="e.g. Ceruledge ex, Terapagos ex">
+            
+            <!-- Mode 1: Scratch Builder -->
+            <div class="glass-card rounded-xl p-4 space-y-3">
+              <h3 class="font-bold text-slate-200 flex items-center gap-1.5">
+                <i data-lucide="sparkles" class="w-3.5 h-3.5 text-amber-400"></i> Scratch Deck Synthesizer
+              </h3>
+              <div>
+                <label class="text-slate-400 block mb-1">Primary Attacker Name</label>
+                <input type="text" id="builder-attacker-input" value="Ceruledge ex" class="glass-input w-full p-2 rounded-lg text-xs" placeholder="e.g. Ceruledge ex, Terapagos ex">
+              </div>
+              <div>
+                <label class="text-slate-400 block mb-1">Preferred ACE SPEC Card</label>
+                <input type="text" id="builder-ace-input" value="Grand Tree" class="glass-input w-full p-2 rounded-lg text-xs" placeholder="e.g. Grand Tree, Prime Catcher">
+              </div>
+              <button onclick="generateScratchDeck()" class="w-full py-2 rounded-xl bg-amber-600 hover:bg-amber-500 font-bold text-white shadow transition">
+                Synthesize Scratch Deck
+              </button>
             </div>
-            <div>
-              <label class="text-slate-300 block mb-1 font-semibold">Preferred ACE SPEC Card</label>
-              <input type="text" id="builder-ace-input" value="Grand Tree" class="glass-input w-full p-2.5 rounded-xl font-medium" placeholder="e.g. Grand Tree, Prime Catcher">
-            </div>
-            <button onclick="generateScratchDeck()" class="w-full py-3 rounded-xl bg-amber-600 hover:bg-amber-500 font-bold text-white shadow-lg shadow-amber-600/30 flex items-center justify-center gap-2 transition">
-              <i data-lucide="sparkles" class="w-4 h-4"></i> Synthesize 60-Card Deck
-            </button>
 
-            <!-- Card Composition KPIs -->
-            <div class="glass-card rounded-xl p-4 space-y-2 mt-4">
-              <span class="text-[11px] font-bold text-slate-400 uppercase tracking-wider block">Deck Curve Breakdown</span>
-              <div class="grid grid-cols-3 gap-2 text-center pt-1">
-                <div class="bg-amber-500/10 border border-amber-500/30 p-2 rounded-lg">
+            <!-- Mode 2: Targeted Counter-Deck -->
+            <div class="glass-card rounded-xl p-4 space-y-3 border-l-4 border-rose-500">
+              <h3 class="font-bold text-rose-300 flex items-center gap-1.5">
+                <i data-lucide="crosshair" class="w-3.5 h-3.5 text-rose-400"></i> Target a Specific Meta Deck
+              </h3>
+              <div>
+                <label class="text-slate-400 block mb-1">Select Deck to Counter</label>
+                <select id="builder-target-select" class="glass-input w-full p-2 rounded-lg text-xs">
+                  <option value="Charizard ex">Charizard ex</option>
+                  <option value="Gardevoir ex">Gardevoir ex</option>
+                  <option value="Terapagos ex">Terapagos ex</option>
+                  <option value="Dragapult ex">Dragapult ex</option>
+                  <option value="Raging Bolt ex">Raging Bolt ex</option>
+                  <option value="Miraidon ex">Miraidon ex</option>
+                  <option value="Gholdengo ex">Gholdengo ex</option>
+                  <option value="Ceruledge ex">Ceruledge ex</option>
+                </select>
+              </div>
+              <button onclick="buildTargetedCounterDeck()" class="w-full py-2 rounded-xl bg-gradient-to-r from-rose-600 to-amber-600 hover:from-rose-500 hover:to-amber-500 font-bold text-white shadow transition">
+                🎯 Build Dedicated Counter-Deck
+              </button>
+            </div>
+
+            <!-- Mode 3: Rogue Deck Innovator -->
+            <div class="glass-card rounded-xl p-4 space-y-2 border-l-4 border-purple-500">
+              <h3 class="font-bold text-purple-300 flex items-center gap-1.5">
+                <i data-lucide="shuffle" class="w-3.5 h-3.5 text-purple-400"></i> Rogue Deck Innovator
+              </h3>
+              <p class="text-[11px] text-slate-400">Synthesizes unexpected, underground tech decks that exploit meta blindspots.</p>
+              <button onclick="discoverRogueDeck()" class="w-full py-2 rounded-xl bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 font-bold text-white shadow transition">
+                🎲 Discover Surprise Rogue Deck
+              </button>
+            </div>
+
+          </div>
+
+          <!-- Composition Donut & Strategy Card -->
+          <div class="space-y-4 flex flex-col justify-between">
+            <div class="glass-card rounded-2xl p-4 flex flex-col items-center justify-center space-y-2">
+              <h3 class="text-xs font-bold uppercase tracking-wider text-slate-300">Composition Ratio</h3>
+              <div class="w-full h-48 relative">
+                <canvas id="builder-donut-canvas"></canvas>
+              </div>
+              <div class="grid grid-cols-3 gap-2 text-center w-full pt-1">
+                <div class="bg-amber-500/10 border border-amber-500/30 p-1.5 rounded-lg">
                   <span class="text-[10px] text-amber-300 block">Pokémon</span>
-                  <span id="builder-count-pkmn" class="font-bold text-sm text-amber-400">14</span>
+                  <span id="builder-count-pkmn" class="font-bold text-xs text-amber-400">14</span>
                 </div>
-                <div class="bg-blue-500/10 border border-blue-500/30 p-2 rounded-lg">
+                <div class="bg-blue-500/10 border border-blue-500/30 p-1.5 rounded-lg">
                   <span class="text-[10px] text-blue-300 block">Trainers</span>
-                  <span id="builder-count-tr" class="font-bold text-sm text-blue-400">32</span>
+                  <span id="builder-count-tr" class="font-bold text-xs text-blue-400">32</span>
                 </div>
-                <div class="bg-emerald-500/10 border border-emerald-500/30 p-2 rounded-lg">
+                <div class="bg-emerald-500/10 border border-emerald-500/30 p-1.5 rounded-lg">
                   <span class="text-[10px] text-emerald-300 block">Energy</span>
-                  <span id="builder-count-nr" class="font-bold text-sm text-emerald-400">14</span>
+                  <span id="builder-count-nr" class="font-bold text-xs text-emerald-400">14</span>
                 </div>
               </div>
-              <div class="text-center pt-2">
+              <div class="text-center pt-1">
                 <span class="text-[11px] text-slate-400">ACE SPEC:</span>
                 <span id="builder-ace-badge" class="font-bold text-xs text-purple-400">Grand Tree</span>
               </div>
             </div>
-          </div>
 
-          <!-- Composition Donut Chart -->
-          <div class="glass-card rounded-2xl p-4 flex flex-col items-center justify-center space-y-2">
-            <h3 class="text-xs font-bold uppercase tracking-wider text-slate-300">Composition Ratio</h3>
-            <div class="w-full h-56 relative">
-              <canvas id="builder-donut-canvas"></canvas>
+            <!-- Strategy Rationale Banner -->
+            <div id="builder-strategy-box" class="hidden glass-card rounded-xl p-3.5 border-t-2 border-indigo-500 space-y-1 text-xs">
+              <span class="text-[10px] font-bold text-indigo-400 uppercase tracking-wider block">Strategic Counter Rationale</span>
+              <p id="builder-strategy-text" class="text-slate-300 text-[11px] leading-relaxed"></p>
             </div>
           </div>
 
           <!-- Decklist Output & 1-Click Copy -->
-          <div class="space-y-2 flex flex-col">
-            <div class="flex items-center justify-between text-xs">
+          <div class="space-y-2 flex flex-col text-xs">
+            <div class="flex items-center justify-between">
               <span class="font-bold text-slate-300">PTCGL Export Format</span>
               <button onclick="copyDeckText('builder-deck-output')" class="px-2.5 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-sky-400 border border-slate-700 font-semibold flex items-center gap-1">
                 <i data-lucide="copy" class="w-3 h-3"></i> Copy
               </button>
             </div>
-            <textarea id="builder-deck-output" rows="14" class="glass-input w-full flex-grow rounded-xl p-3 font-mono text-xs focus:ring-2 focus:ring-amber-500" placeholder="Generated decklist will appear here..."></textarea>
+            <textarea id="builder-deck-output" rows="18" class="glass-input w-full flex-grow rounded-xl p-3 font-mono text-xs focus:ring-2 focus:ring-amber-500" placeholder="Generated decklist will appear here..."></textarea>
           </div>
 
         </div>
