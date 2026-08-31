@@ -530,6 +530,158 @@ class TestEngineMechanics(unittest.TestCase):
         chosen = mcts.choose_action(game, moves)
         self.assertIn(chosen, moves)
 
+    # --- PHASE 4 TESTS: MODERN SETS, NEW ARCHETYPES & TOURNAMENT MATRIX ---
+
+    def test_gholdengo_ex_coin_bonus_and_make_it_rain(self):
+        """Test Gholdengo ex Coin Bonus (draw 2 active) and Make It Rain (50x per basic energy discarded from hand)."""
+        p1 = Player("P1", ["Gimmighoul"] * 30, self.factory)
+        p2 = Player("P2", ["Charmander"] * 30, self.factory)
+        game = GameState(p1, p2)
+        game.setup_game(verbose=False)
+
+        gholdengo = self.factory.create_card("Gholdengo ex")
+        gholdengo.attached_energy = [self.factory.create_card("Metal Energy")]
+        p1.active_pokemon = gholdengo
+
+        # Hand has 3 Metal Energy
+        p1.hand = [self.factory.create_card("Metal Energy") for _ in range(3)]
+        p1_deck_count = len(p1.deck)
+
+        # 1. Coin Bonus when Active: draws 2 cards
+        game.handle_action(('use_pokemon_ability', 0, 'Coin Bonus'), verbose=False)
+        self.assertEqual(len(p1.deck), p1_deck_count - 2)
+
+        # 2. Make It Rain: discards all 3 Basic Energy from hand -> 3 * 50 = 150 damage!
+        p2.active_pokemon = self.factory.create_card("Charizard ex")  # 330 HP
+        p2.bench = [self.factory.create_card("Charmander")]
+
+        game._handle_attack(0, verbose=False)
+        self.assertEqual(p2.active_pokemon.damage_counters, 150)
+        self.assertEqual(len(p1.hand), 2)  # Drew 2, discarded 3
+
+    def test_ceruledge_ex_abyssal_flames_discard_scaling(self):
+        """Test Ceruledge ex Abyssal Flames deals 30 + 30x per Energy card in discard pile."""
+        p1 = Player("P1", ["Charcadet"] * 30, self.factory)
+        p2 = Player("P2", ["Charmander"] * 30, self.factory)
+        game = GameState(p1, p2)
+        game.setup_game(verbose=False)
+
+        ceruledge = self.factory.create_card("Ceruledge ex")
+        ceruledge.attached_energy = [self.factory.create_card("Fire Energy")]
+        p1.active_pokemon = ceruledge
+
+        # 5 Fire Energy in discard pile
+        p1.discard_pile = [self.factory.create_card("Fire Energy") for _ in range(5)]
+
+        p2.active_pokemon = self.factory.create_card("Charizard ex")  # 330 HP
+        p2.bench = [self.factory.create_card("Charmander")]
+
+        # Abyssal Flames: 30 + (30 * 5) = 180 damage!
+        game._handle_attack(0, verbose=False)
+        self.assertEqual(p2.active_pokemon.damage_counters, 180)
+
+    def test_archaludon_ex_metal_bridge_zero_retreat(self):
+        """Test Archaludon ex Metal Bridge passive provides free retreat for any Pokémon with Metal Energy."""
+        p1 = Player("P1", ["Duraludon"] * 30, self.factory)
+        p2 = Player("P2", ["Charmander"] * 30, self.factory)
+        game = GameState(p1, p2)
+        game.setup_game(verbose=False)
+
+        active_duraludon = self.factory.create_card("Duraludon")  # Base retreat 2
+        archaludon = self.factory.create_card("Archaludon ex")
+        p1.active_pokemon = active_duraludon
+        p1.bench = [archaludon]
+
+        # No Metal Energy attached -> retreat cost is 2
+        self.assertEqual(active_duraludon.get_effective_retreat_cost(p1), 2)
+
+        # Attach Metal Energy -> Metal Bridge makes retreat cost 0!
+        active_duraludon.attached_energy = [self.factory.create_card("Metal Energy")]
+        self.assertEqual(active_duraludon.get_effective_retreat_cost(p1), 0)
+
+        # Retreat requires 0 energy discarded
+        game.handle_action(('retreat', 0), verbose=False)
+        self.assertEqual(p1.active_pokemon, archaludon)
+        self.assertEqual(len(active_duraludon.attached_energy), 1)
+
+    def test_grand_tree_chain_evolution(self):
+        """Test Grand Tree Stadium ACE SPEC chain evolves Basic -> Stage 1 -> Stage 2 in 1 turn from deck."""
+        p1 = Player("P1", ["Charmander"] * 30, self.factory)
+        p2 = Player("P2", ["Pikachu"] * 30, self.factory)
+        game = GameState(p1, p2)
+        game.setup_game(verbose=False)
+
+        charmander = self.factory.create_card("Charmander")
+        p1.active_pokemon = charmander
+        p1.deck = [self.factory.create_card("Charmeleon"), self.factory.create_card("Charizard ex")] + p1.deck
+
+        grand_tree = self.factory.create_card("Grand Tree")
+        game.active_stadium = grand_tree
+
+        game.handle_action(('use_stadium_ability',), verbose=False)
+        self.assertEqual(p1.active_pokemon.name, "Charizard ex")
+
+    def test_neutral_center_ex_damage_prevention(self):
+        """Test Neutral Center Stadium ACE SPEC prevents all damage from Pokémon ex to non-Rule Box Pokémon."""
+        p1 = Player("P1", ["Charizard ex"] * 30, self.factory)
+        p2 = Player("P2", ["Charmander"] * 30, self.factory)
+        game = GameState(p1, p2)
+        game.setup_game(verbose=False)
+
+        zard_ex = self.factory.create_card("Charizard ex")  # Rule Box ex
+        zard_ex.attached_energy = [self.factory.create_card("Fire Energy")] * 2
+        p1.active_pokemon = zard_ex
+
+        charmander = self.factory.create_card("Charmander")  # Non-Rule Box (70 HP)
+        p2.active_pokemon = charmander
+        p2.bench = [self.factory.create_card("Charmander")]
+
+        # Play Neutral Center
+        game.active_stadium = self.factory.create_card("Neutral Center")
+
+        # Attack should deal 0 damage!
+        game._handle_attack(0, verbose=False)
+        self.assertEqual(charmander.damage_counters, 0)
+        self.assertFalse(charmander.is_knocked_out())
+
+    def test_night_stretcher_and_earthen_vessel(self):
+        """Test Night Stretcher recovers card from discard, and Earthen Vessel searches 2 Basic Energy."""
+        p1 = Player("P1", ["Pikachu"] * 30, self.factory)
+        p2 = Player("P2", ["Charmander"] * 30, self.factory)
+        game = GameState(p1, p2)
+        game.setup_game(verbose=False)
+
+        # 1. Night Stretcher
+        p1.discard_pile = [self.factory.create_card("Charizard ex")]
+        p1.hand = [self.factory.create_card("Night Stretcher")]
+        game.handle_action(('play_item', 0), verbose=False)
+        self.assertTrue(any(c.name == "Charizard ex" for c in p1.hand))
+
+        # 2. Earthen Vessel
+        p1.hand = [self.factory.create_card("Earthen Vessel"), self.factory.create_card("Pikachu")]
+        p1.deck = [self.factory.create_card("Fire Energy"), self.factory.create_card("Metal Energy")] + p1.deck
+        game.handle_action(('play_item', 0), verbose=False)
+        self.assertEqual(sum(1 for c in p1.hand if isinstance(c, EnergyCard)), 2)
+
+    def test_tournament_matrix_runner_execution(self):
+        """Test TournamentMatrixRunner runs multi-deck simulation and outputs ranking dict."""
+        TournamentMatrixRunner = game_engine_module.TournamentMatrixRunner
+        mini_archetypes = {
+            "Gardevoir": ["Ralts"] * 30,
+            "Terapagos": ["Hoothoot"] * 30
+        }
+        runner = TournamentMatrixRunner(
+            archetypes=mini_archetypes,
+            card_factory=self.factory,
+            games_per_matchup=2,
+            c1_kwargs={"iteration_limit": 20, "simulation_depth": 3}
+        )
+        res = runner.run_round_robin(verbose=False)
+        self.assertIn("ranked_decks", res)
+        self.assertIn("results_matrix", res)
+        self.assertEqual(len(res["ranked_decks"]), 2)
+
 
 if __name__ == '__main__':
     unittest.main()
+

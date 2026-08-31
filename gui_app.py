@@ -1,7 +1,7 @@
 """
-Pokémon TCG Visual GUI & ISMCTS Game State Explorer (Standard Format - Phase 3)
+Pokémon TCG Visual GUI & ISMCTS Tournament Suite (Standard Format - Phase 4)
 Uses Python's standard tkinter GUI framework (no external dependencies needed).
-Connects directly to the live Game Engine, Special Conditions, ACE SPECs, Gardevoir/Terapagos engines, and ISMCTS.
+Connects directly to the live Game Engine, Special Conditions, ACE SPECs, 8-Deck Archetype Pool, and Tournament Matrix Runner.
 """
 
 import tkinter as tk
@@ -16,131 +16,24 @@ Player = game_engine.Player
 GameState = game_engine.GameState
 TurnBasedGreedyAI = game_engine.TurnBasedGreedyAI
 MCTSController = game_engine.MCTSController
+STANDARD_ARCHETYPES = game_engine.STANDARD_ARCHETYPES
+TournamentMatrixRunner = game_engine.TournamentMatrixRunner
 
-ARCHETYPES = {
-    "Gardevoir ex / Drifloon": (
-        ["Ralts"] * 4 +
-        ["Kirlia"] * 4 +
-        ["Gardevoir ex"] * 2 +
-        ["Drifloon"] * 2 +
-        ["Scream Tail"] * 2 +
-        ["Munkidori"] * 2 +
-        ["Fezandipiti ex"] * 1 +
-        ["Hero's Cape"] * 1 +
-        ["Buddy-Buddy Poffin"] * 4 +
-        ["Ultra Ball"] * 4 +
-        ["Super Rod"] * 2 +
-        ["Counter Catcher"] * 1 +
-        ["Professor's Research"] * 4 +
-        ["Boss's Orders"] * 2 +
-        ["Iono"] * 3 +
-        ["Psychic Energy"] * 18 +
-        ["Darkness Energy"] * 4
-    ),
-    "Terapagos ex / Noctowl": (
-        ["Terapagos ex"] * 3 +
-        ["Hoothoot"] * 3 +
-        ["Noctowl"] * 3 +
-        ["Fezandipiti ex"] * 1 +
-        ["Prime Catcher"] * 1 +
-        ["Area Zero Underdepths"] * 3 +
-        ["Buddy-Buddy Poffin"] * 4 +
-        ["Ultra Ball"] * 4 +
-        ["Nest Ball"] * 4 +
-        ["Super Rod"] * 2 +
-        ["Double Turbo Energy"] * 4 +
-        ["Professor's Research"] * 4 +
-        ["Boss's Orders"] * 2 +
-        ["Iono"] * 3 +
-        ["Grass Energy"] * 6 +
-        ["Lightning Energy"] * 6 +
-        ["Fighting Energy"] * 7
-    ),
-    "Charizard ex / Pidgeot ex": (
-        ["Charmander"] * 4 +
-        ["Charmeleon"] * 1 +
-        ["Charizard ex"] * 3 +
-        ["Pidgey"] * 3 +
-        ["Pidgeot ex"] * 2 +
-        ["Unfair Stamp"] * 1 +
-        ["Rare Candy"] * 4 +
-        ["Buddy-Buddy Poffin"] * 4 +
-        ["Ultra Ball"] * 4 +
-        ["Nest Ball"] * 2 +
-        ["Super Rod"] * 2 +
-        ["Counter Catcher"] * 1 +
-        ["Professor's Research"] * 4 +
-        ["Boss's Orders"] * 2 +
-        ["Iono"] * 3 +
-        ["Artazon"] * 1 +
-        ["Fire Energy"] * 15 +
-        ["Double Turbo Energy"] * 4
-    ),
-    "Dragapult ex": (
-        ["Dreepy"] * 4 +
-        ["Drakloak"] * 4 +
-        ["Dragapult ex"] * 3 +
-        ["Prime Catcher"] * 1 +
-        ["Buddy-Buddy Poffin"] * 4 +
-        ["Rare Candy"] * 3 +
-        ["Ultra Ball"] * 4 +
-        ["Super Rod"] * 2 +
-        ["Counter Catcher"] * 1 +
-        ["Professor's Research"] * 4 +
-        ["Boss's Orders"] * 2 +
-        ["Iono"] * 3 +
-        ["Fire Energy"] * 8 +
-        ["Psychic Energy"] * 8 +
-        ["Jet Energy"] * 4 +
-        ["Mist Energy"] * 5
-    ),
-    "Raging Bolt ex / Ogerpon ex": (
-        ["Raging Bolt ex"] * 4 +
-        ["Teal Mask Ogerpon ex"] * 4 +
-        ["Prime Catcher"] * 1 +
-        ["Professor Sada's Vitality"] * 4 +
-        ["Nest Ball"] * 4 +
-        ["Ultra Ball"] * 4 +
-        ["Super Rod"] * 2 +
-        ["Bravery Charm"] * 3 +
-        ["Professor's Research"] * 4 +
-        ["Boss's Orders"] * 2 +
-        ["Iono"] * 3 +
-        ["Grass Energy"] * 13 +
-        ["Lightning Energy"] * 6 +
-        ["Fighting Energy"] * 6
-    ),
-    "Miraidon ex / Iron Hands ex": (
-        ["Miraidon ex"] * 3 +
-        ["Iron Hands ex"] * 3 +
-        ["Pikachu ex"] * 2 +
-        ["Prime Catcher"] * 1 +
-        ["Electric Generator"] * 4 +
-        ["Nest Ball"] * 4 +
-        ["Ultra Ball"] * 4 +
-        ["Super Rod"] * 2 +
-        ["Bravery Charm"] * 2 +
-        ["Double Turbo Energy"] * 4 +
-        ["Professor's Research"] * 4 +
-        ["Boss's Orders"] * 2 +
-        ["Iono"] * 2 +
-        ["Lightning Energy"] * 23
-    )
-}
+ARCHETYPES = STANDARD_ARCHETYPES
 
 
 class PokemonTCGGUI:
     def __init__(self, root):
         self.root = root
-        self.root.title("Pokémon TCG Simulator & ISMCTS Visualizer (Standard Format - Phase 3)")
-        self.root.geometry("1320x920")
-        self.root.minsize(1120, 800)
+        self.root.title("Pokémon TCG Simulator & Tournament Matrix Suite (Standard Format - Phase 4)")
+        self.root.geometry("1340x940")
+        self.root.minsize(1140, 820)
         self.root.configure(bg="#0f172a")
 
         # Game State
         self.factory = CardFactory('cards.json')
-        self.p1_archetype_name = "Gardevoir ex / Drifloon"
-        self.p2_archetype_name = "Terapagos ex / Noctowl"
+        self.p1_archetype_name = "Gardevoir ex"
+        self.p2_archetype_name = "Terapagos ex"
 
         self.game = None
         self.mcts = MCTSController(iteration_limit=300, simulation_depth=16)
@@ -159,6 +52,8 @@ class PokemonTCGGUI:
         style.theme_use('clam')
         style.configure("TProgressbar", thickness=8, troughcolor="#1e293b", background="#10b981")
         style.configure("TCombobox", fieldbackground="#1e293b", background="#334155", foreground="#f8fafc")
+        style.configure("Treeview", background="#0f172a", foreground="#f8fafc", fieldbackground="#0f172a", font=("Segoe UI", 8))
+        style.configure("Treeview.Heading", background="#1e293b", foreground="#38bdf8", font=("Segoe UI", 9, "bold"))
 
     def build_ui(self):
         # 1. Top Navigation & Controls Bar
@@ -167,7 +62,7 @@ class PokemonTCGGUI:
 
         title_label = tk.Label(
             top_bar,
-            text="⚡ Pokémon TCG & ISMCTS Engine",
+            text="⚡ Pokémon TCG & Tournament Suite",
             font=("Segoe UI", 13, "bold"),
             fg="#f8fafc",
             bg="#1e293b"
@@ -192,38 +87,45 @@ class PokemonTCGGUI:
 
         # Deck Archetype Pickers
         tk.Label(top_bar, text="P1:", font=("Segoe UI", 8), fg="#94a3b8", bg="#1e293b").pack(side="left", padx=(8, 2))
-        self.p1_combo = ttk.Combobox(top_bar, values=list(ARCHETYPES.keys()), state="readonly", width=20, font=("Segoe UI", 8))
+        self.p1_combo = ttk.Combobox(top_bar, values=list(ARCHETYPES.keys()), state="readonly", width=16, font=("Segoe UI", 8))
         self.p1_combo.set(self.p1_archetype_name)
         self.p1_combo.pack(side="left", padx=2)
         self.p1_combo.bind("<<ComboboxSelected>>", self.on_archetype_change)
 
         tk.Label(top_bar, text="P2:", font=("Segoe UI", 8), fg="#94a3b8", bg="#1e293b").pack(side="left", padx=(6, 2))
-        self.p2_combo = ttk.Combobox(top_bar, values=list(ARCHETYPES.keys()), state="readonly", width=20, font=("Segoe UI", 8))
+        self.p2_combo = ttk.Combobox(top_bar, values=list(ARCHETYPES.keys()), state="readonly", width=16, font=("Segoe UI", 8))
         self.p2_combo.set(self.p2_archetype_name)
         self.p2_combo.pack(side="left", padx=2)
         self.p2_combo.bind("<<ComboboxSelected>>", self.on_archetype_change)
 
         # Action Buttons
         btn_new = tk.Button(
-            top_bar, text="🔄 New Match", font=("Segoe UI", 8, "bold"),
+            top_bar, text="🔄 Reset", font=("Segoe UI", 8, "bold"),
             bg="#059669", fg="#ffffff", activebackground="#10b981", activeforeground="#ffffff",
             relief="flat", padx=8, pady=3, cursor="hand2", command=self.start_new_match
         )
-        btn_new.pack(side="left", padx=4)
+        btn_new.pack(side="left", padx=3)
 
         self.btn_step = tk.Button(
-            top_bar, text="▶️ Next Step", font=("Segoe UI", 8, "bold"),
+            top_bar, text="▶️ Step", font=("Segoe UI", 8, "bold"),
             bg="#4f46e5", fg="#ffffff", activebackground="#6366f1", activeforeground="#ffffff",
             relief="flat", padx=8, pady=3, cursor="hand2", command=self.step_action
         )
-        self.btn_step.pack(side="left", padx=4)
+        self.btn_step.pack(side="left", padx=3)
 
         self.btn_auto = tk.Button(
-            top_bar, text="⏩ Auto Play", font=("Segoe UI", 8, "bold"),
+            top_bar, text="⏩ Auto", font=("Segoe UI", 8, "bold"),
             bg="#334155", fg="#ffffff", activebackground="#475569", activeforeground="#ffffff",
             relief="flat", padx=8, pady=3, cursor="hand2", command=self.toggle_auto_play
         )
-        self.btn_auto.pack(side="left", padx=4)
+        self.btn_auto.pack(side="left", padx=3)
+
+        btn_matrix = tk.Button(
+            top_bar, text="🏆 Tournament Matrix", font=("Segoe UI", 8, "bold"),
+            bg="#d97706", fg="#ffffff", activebackground="#f59e0b", activeforeground="#ffffff",
+            relief="flat", padx=8, pady=3, cursor="hand2", command=self.open_tournament_window
+        )
+        btn_matrix.pack(side="left", padx=4)
 
         # Speed Slider
         lbl_speed = tk.Label(top_bar, text="Speed:", font=("Segoe UI", 8), fg="#94a3b8", bg="#1e293b")
@@ -242,7 +144,7 @@ class PokemonTCGGUI:
         left_playmat = tk.Frame(content_frame, bg="#0f172a")
         left_playmat.pack(side="left", fill="both", expand=True, padx=(0, 6))
 
-        right_panel = tk.Frame(content_frame, bg="#0f172a", width=340)
+        right_panel = tk.Frame(content_frame, bg="#0f172a", width=350)
         right_panel.pack(side="right", fill="both", expand=False)
 
         # --- PLAYMAT: OPPONENT (P2) ---
@@ -596,7 +498,7 @@ class PokemonTCGGUI:
             self.btn_auto.config(text="⏸️ Pause", bg="#d97706")
             self.run_auto_loop()
         else:
-            self.btn_auto.config(text="⏩ Auto Play", bg="#334155")
+            self.btn_auto.config(text="⏩ Auto", bg="#334155")
 
     def run_auto_loop(self):
         if not self.is_auto_playing or not self.game or self.game.game_over:
@@ -606,6 +508,69 @@ class PokemonTCGGUI:
 
         self.step_action()
         self.root.after(self.auto_speed_ms, self.run_auto_loop)
+
+    def open_tournament_window(self):
+        tourney_win = tk.Toplevel(self.root)
+        tourney_win.title("Standard Format Tournament Matrix Simulator")
+        tourney_win.geometry("900x600")
+        tourney_win.configure(bg="#0f172a")
+
+        header = tk.Label(
+            tourney_win,
+            text="🏆 Standard Meta Round-Robin Tournament Matrix",
+            font=("Segoe UI", 12, "bold"),
+            fg="#f8fafc", bg="#0f172a"
+        )
+        header.pack(pady=10)
+
+        tree = ttk.Treeview(tourney_win, columns=("Rank", "Archetype", "Tier", "Record", "WinRate", "PrizeDiff"), show="headings", height=10)
+        tree.heading("Rank", text="Rank")
+        tree.heading("Archetype", text="Archetype")
+        tree.heading("Tier", text="Tier")
+        tree.heading("Record", text="Record (W-L-D)")
+        tree.heading("WinRate", text="Win Rate")
+        tree.heading("PrizeDiff", text="Prize Diff")
+
+        tree.column("Rank", width=50, anchor="center")
+        tree.column("Archetype", width=180, anchor="w")
+        tree.column("Tier", width=80, anchor="center")
+        tree.column("Record", width=120, anchor="center")
+        tree.column("WinRate", width=90, anchor="center")
+        tree.column("PrizeDiff", width=90, anchor="center")
+        tree.pack(fill="both", expand=True, padx=12, pady=6)
+
+        status_lbl = tk.Label(tourney_win, text="Click 'Start Tournament' to run multi-deck simulation.", font=("Segoe UI", 9), fg="#94a3b8", bg="#0f172a")
+        status_lbl.pack(pady=4)
+
+        def run_sim_thread():
+            status_lbl.config(text="Simulating Round-Robin Tournament... Please wait.", fg="#f59e0b")
+            runner = TournamentMatrixRunner(
+                card_factory=self.factory,
+                games_per_matchup=2,
+                c1_kwargs={"iteration_limit": 60, "simulation_depth": 6}
+            )
+            res = runner.run_round_robin(verbose=False)
+            
+            for item in tree.get_children():
+                tree.delete(item)
+
+            for rank, d in enumerate(res["ranked_decks"], 1):
+                s = res["overall_stats"][d]
+                total = max(1, s["total"])
+                wr = (s["wins"] / total) * 100
+                diff = s["prizes_taken"] - s["prizes_lost"]
+                tier = "Tier S" if wr >= 60.0 else ("Tier 1" if wr >= 50.0 else "Tier 2")
+                record_str = f"{s['wins']}-{s['losses']}-{s['draws']}"
+                tree.insert("", "end", values=(rank, d, tier, record_str, f"{wr:.1f}%", f"{diff:+d}"))
+
+            status_lbl.config(text=f"Tournament Complete! {len(res['ranked_decks'])} archetypes evaluated in {res['elapsed_seconds']:.2f}s.", fg="#10b981")
+
+        btn_run = tk.Button(
+            tourney_win, text="🚀 Start Tournament Simulation", font=("Segoe UI", 10, "bold"),
+            bg="#059669", fg="#ffffff", activebackground="#10b981", activeforeground="#ffffff",
+            relief="flat", padx=12, pady=6, cursor="hand2", command=lambda: threading.Thread(target=run_sim_thread, daemon=True).start()
+        )
+        btn_run.pack(pady=10)
 
 
 def main():

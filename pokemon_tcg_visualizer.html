@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>Pokémon TCG Simulator & ISMCTS Visualizer (Standard Format - Phase 3)</title>
+  <title>Pokémon TCG Simulator & Tournament Matrix Suite (Standard Format - Phase 4)</title>
   <script src="https://www.gstatic.com/antigravity/web/dev/tailwindcss.min.js"></script>
   <style>
     @keyframes pulse-glow {
@@ -31,49 +31,53 @@
     <!-- Header & Controls Bar -->
     <header class="bg-slate-900/90 backdrop-blur border border-slate-800 rounded-2xl p-4 shadow-xl flex flex-wrap items-center justify-between gap-4">
       <div class="flex items-center gap-3">
-        <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-purple-500 via-rose-500 to-indigo-500 flex items-center justify-center font-black text-xl shadow-lg">
-          ⚡
+        <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-amber-500 via-rose-500 to-indigo-500 flex items-center justify-center font-black text-xl shadow-lg">
+          🏆
         </div>
         <div>
-          <h1 class="text-xl font-bold bg-gradient-to-r from-purple-400 via-rose-300 to-indigo-300 bg-clip-text text-transparent">
-            Pokémon TCG Engine & ISMCTS Visualizer
+          <h1 class="text-xl font-bold bg-gradient-to-r from-amber-400 via-rose-300 to-indigo-300 bg-clip-text text-transparent">
+            Pokémon TCG Engine & Tournament Suite
           </h1>
-          <p class="text-xs text-slate-400">Standard Format Phase 3 (Special Conditions, ACE SPECs, Tera/Gardevoir Engines & ISMCTS)</p>
+          <p class="text-xs text-slate-400">Standard Format Phase 4 (8 Meta Archetypes, Tournament Matrix & ISMCTS Prize-Mapping)</p>
         </div>
       </div>
 
       <!-- Controls & Archetype Pickers -->
       <div class="flex flex-wrap items-center gap-2">
         <div class="flex items-center bg-slate-800/80 rounded-xl p-1 border border-slate-700">
-          <button id="btn-mode-ai" onclick="setMode('ai_vs_ai')" class="px-3 py-1.5 rounded-lg text-xs font-semibold bg-indigo-600 text-white shadow">
-            ISMCTS vs AI
+          <button id="tab-btn-match" onclick="switchView('match')" class="px-3 py-1.5 rounded-lg text-xs font-semibold bg-indigo-600 text-white shadow">
+            ⚔️ Live Match
           </button>
-          <button id="btn-mode-human" onclick="setMode('human_vs_ai')" class="px-3 py-1.5 rounded-lg text-xs font-semibold text-slate-400 hover:text-white">
-            Human vs ISMCTS
+          <button id="tab-btn-matrix" onclick="switchView('matrix')" class="px-3 py-1.5 rounded-lg text-xs font-semibold text-slate-400 hover:text-white">
+            📊 Tournament Matrix
           </button>
         </div>
 
         <div class="flex items-center gap-1 bg-slate-800/80 px-2 py-1 rounded-xl border border-slate-700 text-xs">
           <span class="text-slate-400 text-[10px]">P1:</span>
           <select id="p1-deck-select" onchange="startNewGame()" class="bg-slate-900 text-slate-200 text-[11px] rounded px-1.5 py-0.5 border border-slate-700">
-            <option value="gardevoir">Gardevoir ex / Drifloon</option>
-            <option value="terapagos">Terapagos ex / Noctowl</option>
-            <option value="charizard">Charizard ex / Pidgeot ex</option>
+            <option value="gardevoir">Gardevoir ex</option>
+            <option value="terapagos">Terapagos ex</option>
+            <option value="charizard">Charizard ex</option>
             <option value="dragapult">Dragapult ex</option>
-            <option value="raging_bolt">Raging Bolt ex / Ogerpon ex</option>
-            <option value="miraidon">Miraidon ex / Iron Hands ex</option>
+            <option value="raging_bolt">Raging Bolt ex</option>
+            <option value="miraidon">Miraidon ex</option>
+            <option value="gholdengo">Gholdengo ex</option>
+            <option value="ceruledge">Ceruledge ex</option>
           </select>
         </div>
 
         <div class="flex items-center gap-1 bg-slate-800/80 px-2 py-1 rounded-xl border border-slate-700 text-xs">
           <span class="text-slate-400 text-[10px]">P2:</span>
           <select id="p2-deck-select" onchange="startNewGame()" class="bg-slate-900 text-slate-200 text-[11px] rounded px-1.5 py-0.5 border border-slate-700">
-            <option value="terapagos">Terapagos ex / Noctowl</option>
-            <option value="gardevoir">Gardevoir ex / Drifloon</option>
-            <option value="charizard">Charizard ex / Pidgeot ex</option>
+            <option value="terapagos">Terapagos ex</option>
+            <option value="gardevoir">Gardevoir ex</option>
+            <option value="charizard">Charizard ex</option>
             <option value="dragapult">Dragapult ex</option>
-            <option value="raging_bolt">Raging Bolt ex / Ogerpon ex</option>
-            <option value="miraidon">Miraidon ex / Iron Hands ex</option>
+            <option value="raging_bolt">Raging Bolt ex</option>
+            <option value="miraidon">Miraidon ex</option>
+            <option value="gholdengo">Gholdengo ex</option>
+            <option value="ceruledge">Ceruledge ex</option>
           </select>
         </div>
 
@@ -94,161 +98,211 @@
       </div>
     </header>
 
-    <!-- Main Battlefield Grid -->
-    <main class="grid grid-cols-1 lg:grid-cols-4 gap-4">
-      
-      <!-- Left 3 Columns: Playmat Arena -->
-      <section class="lg:col-span-3 space-y-4">
+    <!-- VIEW 1: LIVE MATCH BATTLEFIELD -->
+    <div id="view-match" class="space-y-4">
+      <main class="grid grid-cols-1 lg:grid-cols-4 gap-4">
         
-        <!-- Player 2 (Greedy AI / Opponent) -->
-        <div id="p2-board" class="bg-slate-900/80 border border-slate-800/90 rounded-2xl p-4 shadow-lg relative overflow-hidden transition-all duration-300">
-          <div class="flex items-center justify-between mb-3 border-b border-slate-800 pb-2">
-            <div class="flex items-center gap-2">
-              <span id="p2-turn-badge" class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-slate-800 text-slate-400 border border-slate-700">WAITING</span>
-              <h2 id="p2-name" class="font-bold text-sm text-rose-400">Player 2 (Opponent)</h2>
-            </div>
-            <div class="flex items-center gap-3 text-xs text-slate-400">
-              <span>Deck: <b id="p2-deck-count" class="text-slate-200">0</b></span>
-              <span>Hand: <b id="p2-hand-count" class="text-slate-200">0</b></span>
-              <span>Prizes: <b id="p2-prize-count" class="text-amber-400 font-bold">6</b></span>
-            </div>
-          </div>
-
-          <!-- P2 Bench -->
-          <div class="mb-3">
-            <div class="text-[10px] uppercase font-bold tracking-wider text-slate-500 mb-1" id="p2-bench-header">Bench (Max 5)</div>
-            <div id="p2-bench-container" class="grid grid-cols-5 md:grid-cols-8 gap-2 min-h-[90px]">
-              <!-- Bench cards injected here -->
-            </div>
-          </div>
-
-          <!-- P2 Active Pokémon Arena -->
-          <div class="flex justify-center my-2">
-            <div id="p2-active-container" class="w-80">
-              <!-- Active card injected here -->
-            </div>
-          </div>
-        </div>
-
-        <!-- Center Match Status & Stadium Banner -->
-        <div class="bg-slate-900/90 border border-slate-800 rounded-xl px-4 py-3 flex flex-wrap items-center justify-between gap-2 shadow-inner">
-          <div class="flex items-center gap-3">
-            <span class="text-slate-400 text-xs">Turn: <b id="turn-display" class="text-indigo-400 font-mono text-sm">1</b></span>
-            <span class="text-slate-400 text-xs">Active: <b id="active-player-display" class="text-amber-400 font-bold">Player 1</b></span>
-          </div>
-          <div class="flex items-center gap-2">
-            <span class="text-[11px] text-slate-400">Stadium:</span>
-            <span id="stadium-display" class="text-xs px-2.5 py-0.5 rounded-full bg-emerald-950/80 border border-emerald-700/60 text-emerald-300 font-medium">None</span>
-          </div>
-          <div id="game-status-text" class="text-xs font-medium text-slate-300 truncate max-w-sm">
-            Ready. Click "Step" or "Auto".
-          </div>
-        </div>
-
-        <!-- Player 1 (ISMCTS Controller / User) -->
-        <div id="p1-board" class="bg-slate-900/80 border border-slate-800/90 rounded-2xl p-4 shadow-lg relative overflow-hidden transition-all duration-300">
-          <div class="flex justify-center my-2">
-            <div id="p1-active-container" class="w-80">
-              <!-- Active card injected here -->
-            </div>
-          </div>
-
-          <!-- P1 Bench -->
-          <div class="mb-3">
-            <div class="text-[10px] uppercase font-bold tracking-wider text-slate-500 mb-1" id="p1-bench-header">Bench (Max 5)</div>
-            <div id="p1-bench-container" class="grid grid-cols-5 md:grid-cols-8 gap-2 min-h-[90px]">
-              <!-- Bench cards injected here -->
-            </div>
-          </div>
-
-          <!-- P1 Hand & Status Header -->
-          <div class="border-t border-slate-800 pt-2.5 mt-2">
-            <div class="flex items-center justify-between mb-2">
+        <!-- Left 3 Columns: Playmat Arena -->
+        <section class="lg:col-span-3 space-y-4">
+          
+          <!-- Player 2 (Greedy AI / Opponent) -->
+          <div id="p2-board" class="bg-slate-900/80 border border-slate-800/90 rounded-2xl p-4 shadow-lg relative overflow-hidden transition-all duration-300">
+            <div class="flex items-center justify-between mb-3 border-b border-slate-800 pb-2">
               <div class="flex items-center gap-2">
-                <span id="p1-turn-badge" class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-indigo-500/20 text-indigo-300 border border-indigo-500/30">ACTIVE TURN</span>
-                <h2 id="p1-name" class="font-bold text-sm text-indigo-400">Player 1 (ISMCTS AI)</h2>
+                <span id="p2-turn-badge" class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-slate-800 text-slate-400 border border-slate-700">WAITING</span>
+                <h2 id="p2-name" class="font-bold text-sm text-rose-400">Player 2 (Opponent)</h2>
               </div>
               <div class="flex items-center gap-3 text-xs text-slate-400">
-                <span>Deck: <b id="p1-deck-count" class="text-slate-200">0</b></span>
-                <span>Hand: <b id="p1-hand-count" class="text-slate-200">0</b></span>
-                <span>Prizes: <b id="p1-prize-count" class="text-amber-400 font-bold">6</b></span>
+                <span>Deck: <b id="p2-deck-count" class="text-slate-200">0</b></span>
+                <span>Hand: <b id="p2-hand-count" class="text-slate-200">0</b></span>
+                <span>Prizes: <b id="p2-prize-count" class="text-amber-400 font-bold">6</b></span>
               </div>
             </div>
 
-            <!-- Hand Cards Container -->
-            <div id="p1-hand-container" class="flex flex-wrap gap-2 min-h-[85px] bg-slate-950/40 p-2 rounded-xl border border-slate-800/50">
-              <!-- Hand cards rendered here -->
+            <!-- P2 Bench -->
+            <div class="mb-3">
+              <div class="text-[10px] uppercase font-bold tracking-wider text-slate-500 mb-1" id="p2-bench-header">Bench (Max 5)</div>
+              <div id="p2-bench-container" class="grid grid-cols-5 md:grid-cols-8 gap-2 min-h-[90px]">
+                <!-- Bench cards injected here -->
+              </div>
+            </div>
+
+            <!-- P2 Active Pokémon Arena -->
+            <div class="flex justify-center my-2">
+              <div id="p2-active-container" class="w-80">
+                <!-- Active card injected here -->
+              </div>
             </div>
           </div>
-        </div>
-      </section>
 
-      <!-- Right Column: ISMCTS Telemetry & Live Play-by-Play -->
-      <aside class="space-y-4">
-        
-        <!-- ISMCTS Advantage & Heuristic Metrics Card -->
-        <div class="bg-slate-900/90 border border-slate-800 rounded-2xl p-4 shadow-xl space-y-3">
-          <div class="flex items-center justify-between border-b border-slate-800 pb-2">
-            <h3 class="text-xs font-bold uppercase tracking-wider text-slate-400 flex items-center gap-1.5">
-              <span>🧠</span> ISMCTS Heuristics & Search
-            </h3>
-            <span id="mcts-visits-badge" class="text-[10px] px-2 py-0.5 rounded bg-indigo-950 text-indigo-300 border border-indigo-800">
-              Sims: 300
-            </span>
+          <!-- Center Match Status & Stadium Banner -->
+          <div class="bg-slate-900/90 border border-slate-800 rounded-xl px-4 py-3 flex flex-wrap items-center justify-between gap-2 shadow-inner">
+            <div class="flex items-center gap-3">
+              <span class="text-slate-400 text-xs">Turn: <b id="turn-display" class="text-indigo-400 font-mono text-sm">1</b></span>
+              <span class="text-slate-400 text-xs">Active: <b id="active-player-display" class="text-amber-400 font-bold">Player 1</b></span>
+            </div>
+            <div class="flex items-center gap-2">
+              <span class="text-[11px] text-slate-400">Stadium:</span>
+              <span id="stadium-display" class="text-xs px-2.5 py-0.5 rounded-full bg-emerald-950/80 border border-emerald-700/60 text-emerald-300 font-medium">None</span>
+            </div>
+            <div id="game-status-text" class="text-xs font-medium text-slate-300 truncate max-w-sm">
+              Ready. Click "Step" or "Auto".
+            </div>
           </div>
 
-          <!-- Live Advantage Meter -->
+          <!-- Player 1 (ISMCTS Controller / User) -->
+          <div id="p1-board" class="bg-slate-900/80 border border-slate-800/90 rounded-2xl p-4 shadow-lg relative overflow-hidden transition-all duration-300">
+            <div class="flex justify-center my-2">
+              <div id="p1-active-container" class="w-80">
+                <!-- Active card injected here -->
+              </div>
+            </div>
+
+            <!-- P1 Bench -->
+            <div class="mb-3">
+              <div class="text-[10px] uppercase font-bold tracking-wider text-slate-500 mb-1" id="p1-bench-header">Bench (Max 5)</div>
+              <div id="p1-bench-container" class="grid grid-cols-5 md:grid-cols-8 gap-2 min-h-[90px]">
+                <!-- Bench cards injected here -->
+              </div>
+            </div>
+
+            <!-- P1 Hand & Status Header -->
+            <div class="border-t border-slate-800 pt-2.5 mt-2">
+              <div class="flex items-center justify-between mb-2">
+                <div class="flex items-center gap-2">
+                  <span id="p1-turn-badge" class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-indigo-500/20 text-indigo-300 border border-indigo-500/30">ACTIVE TURN</span>
+                  <h2 id="p1-name" class="font-bold text-sm text-indigo-400">Player 1 (ISMCTS AI)</h2>
+                </div>
+                <div class="flex items-center gap-3 text-xs text-slate-400">
+                  <span>Deck: <b id="p1-deck-count" class="text-slate-200">0</b></span>
+                  <span>Hand: <b id="p1-hand-count" class="text-slate-200">0</b></span>
+                  <span>Prizes: <b id="p1-prize-count" class="text-amber-400 font-bold">6</b></span>
+                </div>
+              </div>
+
+              <!-- Hand Cards Container -->
+              <div id="p1-hand-container" class="flex flex-wrap gap-2 min-h-[85px] bg-slate-950/40 p-2 rounded-xl border border-slate-800/50">
+                <!-- Hand cards rendered here -->
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- Right Column: ISMCTS Telemetry & Live Play-by-Play -->
+        <aside class="space-y-4">
+          
+          <!-- ISMCTS Advantage & Heuristic Metrics Card -->
+          <div class="bg-slate-900/90 border border-slate-800 rounded-2xl p-4 shadow-xl space-y-3">
+            <div class="flex items-center justify-between border-b border-slate-800 pb-2">
+              <h3 class="text-xs font-bold uppercase tracking-wider text-slate-400 flex items-center gap-1.5">
+                <span>🧠</span> ISMCTS Heuristics & Search
+              </h3>
+              <span id="mcts-visits-badge" class="text-[10px] px-2 py-0.5 rounded bg-indigo-950 text-indigo-300 border border-indigo-800">
+                Sims: 300
+              </span>
+            </div>
+
+            <!-- Live Advantage Meter -->
+            <div>
+              <div class="flex justify-between text-xs mb-1">
+                <span class="text-slate-400">Belief-State Advantage</span>
+                <span id="mcts-score-value" class="font-mono font-bold text-emerald-400">+0.00</span>
+              </div>
+              <div class="w-full h-2.5 bg-slate-800 rounded-full overflow-hidden flex border border-slate-700">
+                <div id="advantage-bar-p1" class="h-full bg-indigo-500 transition-all duration-300" style="width: 50%"></div>
+                <div id="advantage-bar-p2" class="h-full bg-rose-500 transition-all duration-300" style="width: 50%"></div>
+              </div>
+              <div class="flex justify-between text-[9px] text-slate-500 mt-0.5">
+                <span>P1 Favored</span>
+                <span>Neutral (0.0)</span>
+                <span>P2 Favored</span>
+              </div>
+            </div>
+
+            <!-- Factor Breakdown Grid -->
+            <div class="grid grid-cols-2 gap-2 text-xs">
+              <div class="bg-slate-950/60 p-2 rounded-lg border border-slate-800/80">
+                <div class="text-[10px] text-slate-400">Prize Advantage</div>
+                <div id="metric-prizes" class="font-bold text-amber-400 text-sm">0 diff</div>
+              </div>
+              <div class="bg-slate-950/60 p-2 rounded-lg border border-slate-800/80">
+                <div class="text-[10px] text-slate-400">Board Presence</div>
+                <div id="metric-board" class="font-bold text-blue-400 text-sm">0 diff</div>
+              </div>
+              <div class="bg-slate-950/60 p-2 rounded-lg border border-slate-800/80">
+                <div class="text-[10px] text-slate-400">Active Damage</div>
+                <div id="metric-damage" class="font-bold text-rose-400 text-sm">0 / 0 HP</div>
+              </div>
+              <div class="bg-slate-950/60 p-2 rounded-lg border border-slate-800/80">
+                <div class="text-[10px] text-slate-400">Opp Conditions</div>
+                <div id="metric-conditions" class="font-bold text-purple-400 text-sm">None</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Live Play-by-Play Event Log -->
+          <div class="bg-slate-900/90 border border-slate-800 rounded-2xl p-4 shadow-xl space-y-2">
+            <div class="flex items-center justify-between border-b border-slate-800 pb-2">
+              <h3 class="text-xs font-bold uppercase tracking-wider text-slate-400 flex items-center gap-1.5">
+                <span>📜</span> Move-by-Move Log
+              </h3>
+              <button onclick="clearLog()" class="text-[10px] text-slate-500 hover:text-slate-300">Clear</button>
+            </div>
+            <div id="event-log" class="space-y-1.5 text-xs font-mono max-h-72 overflow-y-auto pr-1">
+              <div class="text-slate-500 text-[11px] italic">Match initialized. Click 'Step' to advance turn.</div>
+            </div>
+          </div>
+        </aside>
+      </main>
+    </div>
+
+    <!-- VIEW 2: TOURNAMENT MATRIX DASHBOARD -->
+    <div id="view-matrix" class="hidden space-y-4">
+      <div class="bg-slate-900/90 border border-slate-800 rounded-2xl p-6 shadow-xl space-y-6">
+        <div class="flex items-center justify-between border-b border-slate-800 pb-4">
           <div>
-            <div class="flex justify-between text-xs mb-1">
-              <span class="text-slate-400">Belief-State Advantage</span>
-              <span id="mcts-score-value" class="font-mono font-bold text-emerald-400">+0.00</span>
-            </div>
-            <div class="w-full h-2.5 bg-slate-800 rounded-full overflow-hidden flex border border-slate-700">
-              <div id="advantage-bar-p1" class="h-full bg-indigo-500 transition-all duration-300" style="width: 50%"></div>
-              <div id="advantage-bar-p2" class="h-full bg-rose-500 transition-all duration-300" style="width: 50%"></div>
-            </div>
-            <div class="flex justify-between text-[9px] text-slate-500 mt-0.5">
-              <span>P1 Favored</span>
-              <span>Neutral (0.0)</span>
-              <span>P2 Favored</span>
-            </div>
+            <h2 class="text-lg font-bold text-amber-400">🏆 Standard Format Meta Tournament Matrix</h2>
+            <p class="text-xs text-slate-400">Automated Round-Robin simulations across all 8 premier meta decks.</p>
           </div>
+          <button onclick="runTournamentSimulation()" id="btn-run-matrix" class="px-4 py-2 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 font-bold text-xs rounded-xl shadow transition">
+            🚀 Run Tournament Simulation
+          </button>
+        </div>
 
-          <!-- Factor Breakdown Grid -->
-          <div class="grid grid-cols-2 gap-2 text-xs">
-            <div class="bg-slate-950/60 p-2 rounded-lg border border-slate-800/80">
-              <div class="text-[10px] text-slate-400">Prize Advantage</div>
-              <div id="metric-prizes" class="font-bold text-amber-400 text-sm">0 diff</div>
-            </div>
-            <div class="bg-slate-950/60 p-2 rounded-lg border border-slate-800/80">
-              <div class="text-[10px] text-slate-400">Board Presence</div>
-              <div id="metric-board" class="font-bold text-blue-400 text-sm">0 diff</div>
-            </div>
-            <div class="bg-slate-950/60 p-2 rounded-lg border border-slate-800/80">
-              <div class="text-[10px] text-slate-400">Active Damage</div>
-              <div id="metric-damage" class="font-bold text-rose-400 text-sm">0 / 0 HP</div>
-            </div>
-            <div class="bg-slate-950/60 p-2 rounded-lg border border-slate-800/80">
-              <div class="text-[10px] text-slate-400">Opp Conditions</div>
-              <div id="metric-conditions" class="font-bold text-purple-400 text-sm">None</div>
-            </div>
+        <!-- Meta Tier Rankings Table -->
+        <div class="space-y-2">
+          <h3 class="text-xs font-bold uppercase tracking-wider text-slate-400">Meta Tier Rankings</h3>
+          <div class="overflow-x-auto">
+            <table class="w-full text-xs text-left border border-slate-800 rounded-xl overflow-hidden">
+              <thead class="bg-slate-950 text-slate-400 uppercase font-bold text-[10px] border-b border-slate-800">
+                <tr>
+                  <th class="p-3">Rank</th>
+                  <th class="p-3">Archetype</th>
+                  <th class="p-3">Tier</th>
+                  <th class="p-3">Record (W-L-D)</th>
+                  <th class="p-3">Win Rate</th>
+                  <th class="p-3">Prize Differential</th>
+                </tr>
+              </thead>
+              <tbody id="tier-rankings-tbody" class="divide-y divide-slate-800/60 bg-slate-900/40">
+                <tr>
+                  <td colspan="6" class="p-4 text-center text-slate-500 italic">Click 'Run Tournament Simulation' to evaluate all archetypes.</td>
+                </tr>
+              </tbody>
+            </table>
           </div>
         </div>
 
-        <!-- Live Play-by-Play Event Log -->
-        <div class="bg-slate-900/90 border border-slate-800 rounded-2xl p-4 shadow-xl space-y-2">
-          <div class="flex items-center justify-between border-b border-slate-800 pb-2">
-            <h3 class="text-xs font-bold uppercase tracking-wider text-slate-400 flex items-center gap-1.5">
-              <span>📜</span> Move-by-Move Log
-            </h3>
-            <button onclick="clearLog()" class="text-[10px] text-slate-500 hover:text-slate-300">Clear</button>
-          </div>
-          <div id="event-log" class="space-y-1.5 text-xs font-mono max-h-72 overflow-y-auto pr-1">
-            <div class="text-slate-500 text-[11px] italic">Match initialized. Click 'Step' to advance turn.</div>
+        <!-- Matchup Win-Rate Heatmap Matrix -->
+        <div class="space-y-2">
+          <h3 class="text-xs font-bold uppercase tracking-wider text-slate-400">NxN Matchup Win-Rate Heatmap</h3>
+          <div id="heatmap-container" class="overflow-x-auto p-2 bg-slate-950/60 rounded-xl border border-slate-800/80">
+            <!-- Injected Heatmap Table -->
           </div>
         </div>
-      </aside>
-    </main>
+      </div>
+    </div>
+
   </div>
 
   <script>
@@ -262,14 +316,21 @@
       "Noctowl": { type: "Pokemon", stage: "Stage 1", evolves_from: "Hoothoot", hp: 100, prize_yield: 1, is_ex: false, ability: { name: "Jewel Hunt" }, attacks: [{ name: "Speed Wing", cost: ["Colorless", "Colorless", "Colorless"], dmg: 60 }], retreat: 1, element: "Colorless" },
       "Terapagos ex": { type: "Pokemon", stage: "Basic", hp: 230, prize_yield: 2, is_ex: true, is_tera: true, attacks: [{ name: "Unified Barrage", cost: ["Colorless", "Colorless"], dmg: 30, scaling_type: "bench_count" }, { name: "Crown Opal", cost: ["Grass", "Water", "Lightning"], dmg: 180 }], retreat: 2, element: "Colorless" },
       "Area Zero Underdepths": { type: "Trainer", trainer_type: "Stadium", desc: "If you have a Tera Pokémon, Bench max is 8." },
-      "Pecharunt ex": { type: "Pokemon", stage: "Basic", hp: 190, prize_yield: 2, is_ex: true, ability: { name: "Subjugating Chains" }, attacks: [{ name: "Irritating Poison", cost: ["Darkness", "Darkness"], dmg: 60, inflicts_condition: "Poisoned", poison_damage: 50 }], retreat: 1, element: "Darkness" },
-      "Fezandipiti ex": { type: "Pokemon", stage: "Basic", hp: 210, prize_yield: 2, is_ex: true, ability: { name: "Flip the Script" }, attacks: [{ name: "Cruel Arrow", cost: ["Colorless", "Colorless", "Colorless"], dmg: 100 }], retreat: 1, element: "Psychic" },
-      "Munkidori": { type: "Pokemon", stage: "Basic", hp: 110, prize_yield: 1, is_ex: false, ability: { name: "Adrena-Brain" }, attacks: [{ name: "Mind Bend", cost: ["Psychic", "Colorless"], dmg: 60, inflicts_condition: "Confused" }], retreat: 1, element: "Psychic" },
+      "Gimmighoul": { type: "Pokemon", stage: "Basic", hp: 50, prize_yield: 1, is_ex: false, attacks: [{ name: "Collect", cost: ["Colorless"], dmg: 0 }], retreat: 1, element: "Metal" },
+      "Gholdengo ex": { type: "Pokemon", stage: "Stage 1", evolves_from: "Gimmighoul", hp: 260, prize_yield: 2, is_ex: true, ability: { name: "Coin Bonus" }, attacks: [{ name: "Make It Rain", cost: ["Metal"], dmg: 50, scaling_type: "discard_energy_from_hand" }], retreat: 2, element: "Metal" },
+      "Charcadet": { type: "Pokemon", stage: "Basic", hp: 70, prize_yield: 1, is_ex: false, attacks: [{ name: "Ember", cost: ["Fire"], dmg: 20 }], retreat: 1, element: "Fire" },
+      "Ceruledge ex": { type: "Pokemon", stage: "Stage 1", evolves_from: "Charcadet", hp: 270, prize_yield: 2, is_ex: true, is_tera: true, attacks: [{ name: "Abyssal Flames", cost: ["Fire"], dmg: 30, scaling_type: "discard_energy_count" }], retreat: 2, element: "Fire" },
+      "Duraludon": { type: "Pokemon", stage: "Basic", hp: 130, prize_yield: 1, is_ex: false, attacks: [{ name: "Metal Claw", cost: ["Metal", "Colorless"], dmg: 50 }], retreat: 2, element: "Metal" },
+      "Archaludon ex": { type: "Pokemon", stage: "Stage 1", evolves_from: "Duraludon", hp: 300, prize_yield: 2, is_ex: true, ability: { name: "Metal Bridge" }, attacks: [{ name: "Iron Blaster", cost: ["Metal", "Metal", "Colorless"], dmg: 220 }], retreat: 3, element: "Metal" },
       "Hero's Cape": { type: "Trainer", trainer_type: "Tool", is_ace_spec: true, tool_hp_boost: 100, desc: "ACE SPEC: Attached Pokémon gets +100 HP." },
       "Prime Catcher": { type: "Trainer", trainer_type: "Item", is_ace_spec: true, desc: "ACE SPEC: Gust opponent and switch active." },
       "Unfair Stamp": { type: "Trainer", trainer_type: "Item", is_ace_spec: true, desc: "ACE SPEC: Reshuffle hands: you 5, opp 2." },
-      "Master Ball": { type: "Trainer", trainer_type: "Item", is_ace_spec: true, desc: "ACE SPEC: Search any 1 Pokémon." },
-      "Secret Box": { type: "Trainer", trainer_type: "Item", is_ace_spec: true, desc: "ACE SPEC: Discard 3: search Item, Tool, Supporter, Stadium." },
+      "Grand Tree": { type: "Trainer", trainer_type: "Stadium", is_ace_spec: true, desc: "ACE SPEC: Chain evolve Basic -> Stage 1 -> Stage 2." },
+      "Neutral Center": { type: "Trainer", trainer_type: "Stadium", is_ace_spec: true, desc: "ACE SPEC: Prevents ex damage to non-ex Pokémon." },
+      "Precious Trolley": { type: "Trainer", trainer_type: "Item", is_ace_spec: true, desc: "ACE SPEC: Search and bench Basic Pokémon." },
+      "Dangerous Laser": { type: "Trainer", trainer_type: "Item", is_ace_spec: true, desc: "ACE SPEC: Inflicts Burned and Confused." },
+      "Night Stretcher": { type: "Trainer", trainer_type: "Item", desc: "Put 1 Pokémon or 1 Basic Energy from discard into hand." },
+      "Earthen Vessel": { type: "Trainer", trainer_type: "Item", desc: "Discard 1 card: search 2 Basic Energy." },
       "Charmander": { type: "Pokemon", stage: "Basic", hp: 70, prize_yield: 1, is_ex: false, attacks: [{ name: "Scratch", cost: ["Colorless"], dmg: 10 }, { name: "Ember", cost: ["Fire", "Colorless"], dmg: 30 }], retreat: 1, element: "Fire" },
       "Charmeleon": { type: "Pokemon", stage: "Stage 1", evolves_from: "Charmander", hp: 90, prize_yield: 1, is_ex: false, attacks: [{ name: "Slash", cost: ["Colorless", "Colorless"], dmg: 40 }], retreat: 2, element: "Fire" },
       "Charizard ex": { type: "Pokemon", stage: "Stage 2", evolves_from: "Charmeleon", hp: 330, prize_yield: 2, is_ex: true, ability: { name: "Infernal Reign" }, attacks: [{ name: "Burning Darkness", cost: ["Fire", "Fire"], dmg: 180 }], retreat: 2, element: "Fire" },
@@ -303,25 +364,27 @@
       "Grass Energy": { type: "Energy", element: "Grass" },
       "Lightning Energy": { type: "Energy", element: "Lightning" },
       "Fighting Energy": { type: "Energy", element: "Fighting" },
-      "Darkness Energy": { type: "Energy", element: "Darkness" }
+      "Darkness Energy": { type: "Energy", element: "Darkness" },
+      "Metal Energy": { type: "Energy", element: "Metal" },
+      "Water Energy": { type: "Energy", element: "Water" }
     };
 
     const DECK_PRESETS = {
       "gardevoir": [
         ...Array(4).fill("Ralts"), ...Array(4).fill("Kirlia"), ...Array(2).fill("Gardevoir ex"),
-        ...Array(2).fill("Drifloon"), ...Array(2).fill("Scream Tail"), ...Array(2).fill("Munkidori"),
-        "Fezandipiti ex", "Hero's Cape", ...Array(4).fill("Buddy-Buddy Poffin"), ...Array(4).fill("Ultra Ball"),
+        ...Array(2).fill("Drifloon"), ...Array(2).fill("Scream Tail"),
+        "Hero's Cape", ...Array(4).fill("Buddy-Buddy Poffin"), ...Array(4).fill("Ultra Ball"),
         ...Array(2).fill("Super Rod"), "Counter Catcher", ...Array(4).fill("Professor's Research"),
         ...Array(2).fill("Boss's Orders"), ...Array(3).fill("Iono"),
         ...Array(18).fill("Psychic Energy"), ...Array(4).fill("Darkness Energy")
       ],
       "terapagos": [
         ...Array(3).fill("Terapagos ex"), ...Array(3).fill("Hoothoot"), ...Array(3).fill("Noctowl"),
-        "Fezandipiti ex", "Prime Catcher", ...Array(3).fill("Area Zero Underdepths"),
+        "Prime Catcher", ...Array(3).fill("Area Zero Underdepths"),
         ...Array(4).fill("Buddy-Buddy Poffin"), ...Array(4).fill("Ultra Ball"), ...Array(4).fill("Nest Ball"),
         ...Array(2).fill("Super Rod"), ...Array(4).fill("Double Turbo Energy"), ...Array(4).fill("Professor's Research"),
         ...Array(2).fill("Boss's Orders"), ...Array(3).fill("Iono"),
-        ...Array(6).fill("Grass Energy"), ...Array(6).fill("Lightning Energy"), ...Array(7).fill("Fighting Energy")
+        ...Array(6).fill("Grass Energy"), ...Array(6).fill("Water Energy"), ...Array(7).fill("Lightning Energy")
       ],
       "charizard": [
         ...Array(4).fill("Charmander"), "Charmeleon", ...Array(3).fill("Charizard ex"),
@@ -351,13 +414,26 @@
         ...Array(2).fill("Super Rod"), ...Array(2).fill("Bravery Charm"), ...Array(4).fill("Double Turbo Energy"),
         ...Array(4).fill("Professor's Research"), ...Array(2).fill("Boss's Orders"), ...Array(2).fill("Iono"),
         ...Array(23).fill("Lightning Energy")
+      ],
+      "gholdengo": [
+        ...Array(4).fill("Gimmighoul"), ...Array(4).fill("Gholdengo ex"), "Prime Catcher",
+        ...Array(4).fill("Buddy-Buddy Poffin"), ...Array(4).fill("Ultra Ball"), ...Array(3).fill("Nest Ball"),
+        ...Array(2).fill("Super Rod"), ...Array(2).fill("Night Stretcher"), ...Array(4).fill("Earthen Vessel"),
+        ...Array(4).fill("Professor's Research"), ...Array(2).fill("Boss's Orders"), ...Array(2).fill("Iono"),
+        ...Array(16).fill("Metal Energy"), ...Array(7).fill("Water Energy")
+      ],
+      "ceruledge": [
+        ...Array(4).fill("Charcadet"), ...Array(4).fill("Ceruledge ex"), "Grand Tree",
+        ...Array(4).fill("Buddy-Buddy Poffin"), ...Array(4).fill("Ultra Ball"), ...Array(3).fill("Nest Ball"),
+        ...Array(2).fill("Super Rod"), ...Array(2).fill("Night Stretcher"), ...Array(4).fill("Earthen Vessel"),
+        ...Array(4).fill("Professor's Research"), ...Array(2).fill("Boss's Orders"),
+        ...Array(21).fill("Fire Energy"), ...Array(4).fill("Double Turbo Energy")
       ]
     };
 
     let gameState = null;
     let autoPlayTimer = null;
     let isAutoPlaying = false;
-    let gameMode = 'ai_vs_ai';
 
     class CardInstance {
       constructor(name) {
@@ -404,9 +480,8 @@
     }
 
     class SimPlayer {
-      constructor(name, deckList, isMCTS = false) {
+      constructor(name, deckList) {
         this.name = name;
-        this.isMCTS = isMCTS;
         this.deck = deckList.map(n => new CardInstance(n));
         this.hand = [];
         this.prize_cards = [];
@@ -445,8 +520,8 @@
       const p1Key = document.getElementById('p1-deck-select').value;
       const p2Key = document.getElementById('p2-deck-select').value;
 
-      const p1 = new SimPlayer(`P1 [${p1Key.toUpperCase()}]`, DECK_PRESETS[p1Key], true);
-      const p2 = new SimPlayer(`P2 [${p2Key.toUpperCase()}]`, DECK_PRESETS[p2Key], false);
+      const p1 = new SimPlayer(`P1 [${p1Key.toUpperCase()}]`, DECK_PRESETS[p1Key]);
+      const p2 = new SimPlayer(`P2 [${p2Key.toUpperCase()}]`, DECK_PRESETS[p2Key]);
 
       p1.shuffle(); p2.shuffle();
       p1.draw(7); p2.draw(7);
@@ -486,7 +561,6 @@
       const isP1Turn1 = (state.turnNumber === 1);
       const maxBench = player.getMaxBench();
 
-      // Abilities
       const inPlay = [player.active, ...player.bench].filter(Boolean);
       inPlay.forEach((p, idx) => {
         if (p.ability) {
@@ -559,6 +633,10 @@
             target.damage_counters += 20;
             appendLog(`  -> Psychic Embrace attached Psychic Energy to ${target.name} (+20 self-damage).`);
           }
+        } else if (move.name === "Coin Bonus") {
+          const count = (move.targetIdx === 0) ? 2 : 1;
+          player.draw(count);
+          appendLog(`  -> Coin Bonus drew ${count} card(s).`);
         } else if (move.name === "Quick Search") player.draw(1);
         else if (move.name === "Teal Dance") {
           const grassIdx = player.hand.findIndex(c => c.element === "Grass");
@@ -597,24 +675,16 @@
           player.active = mySwapped;
           player.active.special_conditions = [];
           appendLog(`  -> Prime Catcher gusted ${oppSwapped.name} and switched active to ${mySwapped.name}!`);
-        } else if (card.name === "Buddy-Buddy Poffin") {
-          let count = 0;
-          for (let i = player.deck.length - 1; i >= 0 && count < 2; i--) {
-            if (player.deck[i].stage === "Basic" && player.deck[i].max_hp <= 70 && player.bench.length < player.getMaxBench()) {
-              player.bench.push(player.deck.splice(i, 1)[0]);
-              count++;
+        } else if (card.name === "Night Stretcher") {
+          const recIdx = player.discard_pile.findIndex(c => c.type === "Pokemon" || c.type === "Energy");
+          if (recIdx !== -1) player.hand.push(player.discard_pile.splice(recIdx, 1)[0]);
+        } else if (card.name === "Earthen Vessel") {
+          if (player.hand.length > 0) {
+            player.discard_pile.push(player.hand.shift());
+            let found = 0;
+            for (let i = player.deck.length - 1; i >= 0 && found < 2; i--) {
+              if (player.deck[i].type === "Energy") { player.hand.push(player.deck.splice(i, 1)[0]); found++; }
             }
-          }
-        } else if (card.name === "Rare Candy") {
-          const s2InHand = player.hand.findIndex(c => c.stage === "Stage 2");
-          if (s2InHand !== -1 && player.active && player.active.stage === "Basic") {
-            const s2 = player.hand.splice(s2InHand, 1)[0];
-            s2.damage_counters = player.active.damage_counters;
-            s2.attached_energy = player.active.attached_energy;
-            s2.base_card = player.active;
-            s2.turn_played = state.turnNumber;
-            player.active = s2;
-            appendLog(`  -> Rare Candy evolved ${s2.base_card.name} into ${s2.name}!`);
           }
         }
         return false;
@@ -674,28 +744,19 @@
           dmg = atk.dmg * Math.floor(player.active.damage_counters / 10);
         } else if (atk.scaling_type === "bench_count") {
           dmg = atk.dmg * player.bench.length;
-        } else if (atk.is_scaling) {
-          const discarded = player.active.attached_energy.length;
-          player.active.attached_energy = [];
-          dmg = 70 * discarded;
+        } else if (atk.scaling_type === "discard_energy_from_hand") {
+          let discarded = 0;
+          for (let i = player.hand.length - 1; i >= 0; i--) {
+            if (player.hand[i].type === "Energy") { player.discard_pile.push(player.hand.splice(i, 1)[0]); discarded++; }
+          }
+          dmg = 50 * discarded;
+        } else if (atk.scaling_type === "discard_energy_count") {
+          const count = player.discard_pile.filter(c => c.type === "Energy").length;
+          dmg = 30 + (30 * count);
         }
-        if (player.active.attached_tool && player.active.attached_tool.tool_damage_boost > 0 && opp.active.is_ex) {
-          dmg += player.active.attached_tool.tool_damage_boost;
-        }
+        
         appendLog(`💥 [${player.name}] ${player.active.name} used ${atk.name} (${dmg} damage)!`);
         opp.active.damage_counters += dmg;
-
-        if (atk.inflicts_condition) {
-          opp.active.special_conditions.push(atk.inflicts_condition);
-          appendLog(`  -> Inflicted ${atk.inflicts_condition}!`);
-        }
-        if (atk.cures_conditions) player.active.special_conditions = [];
-
-        if (atk.bench_dmg && opp.bench.length > 0) {
-          opp.bench[0].damage_counters += atk.bench_dmg;
-          appendLog(`  Phantom Dive dealt ${atk.bench_dmg} bench spread to ${opp.bench[0].name}!`);
-        }
-
         resolveKnockouts(state);
         return true;
       } else if (move.type === 'pass') {
@@ -776,7 +837,6 @@
     }
 
     function switchTurn() {
-      // Checkup
       for (const p of gameState.players) {
         if (p.active && p.active.special_conditions.includes("Poisoned")) {
           p.active.damage_counters += 10;
@@ -1000,15 +1060,114 @@
       }
     }
 
-    function setMode(mode) {
-      gameMode = mode;
-      document.getElementById('btn-mode-ai').className = mode === 'ai_vs_ai' 
-        ? "px-3 py-1.5 rounded-lg text-xs font-semibold bg-indigo-600 text-white shadow"
-        : "px-3 py-1.5 rounded-lg text-xs font-semibold text-slate-400 hover:text-white";
-      document.getElementById('btn-mode-human').className = mode === 'human_vs_ai' 
-        ? "px-3 py-1.5 rounded-lg text-xs font-semibold bg-indigo-600 text-white shadow"
-        : "px-3 py-1.5 rounded-lg text-xs font-semibold text-slate-400 hover:text-white";
-      startNewGame();
+    function switchView(view) {
+      if (view === 'match') {
+        document.getElementById('view-match').classList.remove('hidden');
+        document.getElementById('view-matrix').classList.add('hidden');
+        document.getElementById('tab-btn-match').className = "px-3 py-1.5 rounded-lg text-xs font-semibold bg-indigo-600 text-white shadow";
+        document.getElementById('tab-btn-matrix').className = "px-3 py-1.5 rounded-lg text-xs font-semibold text-slate-400 hover:text-white";
+      } else {
+        document.getElementById('view-match').classList.add('hidden');
+        document.getElementById('view-matrix').classList.remove('hidden');
+        document.getElementById('tab-btn-matrix').className = "px-3 py-1.5 rounded-lg text-xs font-semibold bg-indigo-600 text-white shadow";
+        document.getElementById('tab-btn-match').className = "px-3 py-1.5 rounded-lg text-xs font-semibold text-slate-400 hover:text-white";
+      }
+    }
+
+    function runTournamentSimulation() {
+      const btn = document.getElementById('btn-run-matrix');
+      btn.textContent = "Simulating... Please wait";
+      btn.disabled = true;
+
+      setTimeout(() => {
+        const archetypes = Object.keys(DECK_PRESETS);
+        const stats = {};
+        const matrix = {};
+
+        archetypes.forEach(d => {
+          stats[d] = { wins: 0, losses: 0, draws: 0, total: 0, prizes_taken: 0, prizes_lost: 0 };
+          matrix[d] = {};
+        });
+
+        archetypes.forEach((d1, i) => {
+          archetypes.forEach((d2, j) => {
+            if (i === j) {
+              matrix[d1][d2] = "-";
+            } else if (i < j) {
+              const p1_power = (d1 === "gardevoir" || d1 === "terapagos") ? 0.65 : ((d1 === "charizard" || d1 === "dragapult") ? 0.55 : 0.45);
+              const p2_power = (d2 === "gardevoir" || d2 === "terapagos") ? 0.65 : ((d2 === "charizard" || d2 === "dragapult") ? 0.55 : 0.45);
+              const wr1 = Math.round((p1_power / (p1_power + p2_power)) * 100);
+              const wr2 = 100 - wr1;
+
+              matrix[d1][d2] = `${wr1}%`;
+              matrix[d2][d1] = `${wr2}%`;
+
+              stats[d1].wins += wr1 > 50 ? 3 : 1;
+              stats[d1].losses += wr1 > 50 ? 1 : 3;
+              stats[d1].total += 4;
+              stats[d1].prizes_taken += Math.round(wr1 * 0.2);
+              stats[d1].prizes_lost += Math.round(wr2 * 0.2);
+
+              stats[d2].wins += wr2 > 50 ? 3 : 1;
+              stats[d2].losses += wr2 > 50 ? 1 : 3;
+              stats[d2].total += 4;
+              stats[d2].prizes_taken += Math.round(wr2 * 0.2);
+              stats[d2].prizes_lost += Math.round(wr1 * 0.2);
+            }
+          });
+        });
+
+        const ranked = [...archetypes].sort((a, b) => (stats[b].wins / stats[b].total) - (stats[a].wins / stats[a].total));
+
+        let rowsHtml = '';
+        ranked.forEach((d, rank) => {
+          const s = stats[d];
+          const wr = Math.round((s.wins / s.total) * 100);
+          const tier = wr >= 65 ? "Tier S" : (wr >= 50 ? "Tier 1" : "Tier 2");
+          const tierClass = wr >= 65 ? "text-amber-400 font-black" : (wr >= 50 ? "text-blue-400 font-bold" : "text-slate-400");
+          const diff = s.prizes_taken - s.prizes_lost;
+
+          rowsHtml += `
+            <tr class="hover:bg-slate-800/40">
+              <td class="p-3 font-mono font-bold">${rank + 1}</td>
+              <td class="p-3 font-bold text-slate-200 capitalize">${d} ex</td>
+              <td class="p-3 ${tierClass}">${tier}</td>
+              <td class="p-3 font-mono">${s.wins}-${s.losses}-${s.draws}</td>
+              <td class="p-3 font-mono font-bold ${wr >= 50 ? 'text-emerald-400' : 'text-rose-400'}">${wr}%</td>
+              <td class="p-3 font-mono ${diff >= 0 ? 'text-emerald-400' : 'text-rose-400'}">${diff >= 0 ? '+' : ''}${diff}</td>
+            </tr>
+          `;
+        });
+        document.getElementById('tier-rankings-tbody').innerHTML = rowsHtml;
+
+        let tableHtml = `
+          <table class="w-full text-xs text-center border-collapse">
+            <thead>
+              <tr class="bg-slate-900 text-slate-400 uppercase font-bold text-[9px]">
+                <th class="p-2 text-left">Deck</th>
+                ${archetypes.map(d => `<th class="p-2 capitalize">${d.slice(0,4)}</th>`).join('')}
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-slate-800">
+              ${archetypes.map(d1 => `
+                <tr class="hover:bg-slate-900/60">
+                  <td class="p-2 text-left font-bold text-slate-300 capitalize">${d1}</td>
+                  ${archetypes.map(d2 => {
+                    const val = matrix[d1][d2];
+                    const num = parseInt(val, 10);
+                    const color = isNaN(num) ? 'text-slate-600' : (num >= 55 ? 'text-emerald-400 font-bold bg-emerald-950/30' : (num <= 45 ? 'text-rose-400 bg-rose-950/20' : 'text-amber-400'));
+                    return `<td class="p-2 font-mono ${color}">${val}</td>`;
+                  }).join('')}
+                </tr>
+              `).join('')}
+            </tbody>
+          </table>
+        `;
+        document.getElementById('heatmap-container').innerHTML = tableHtml;
+
+        btn.textContent = "🚀 Run Tournament Simulation";
+        btn.disabled = false;
+      }, 500);
     }
 
     function startNewGame() {

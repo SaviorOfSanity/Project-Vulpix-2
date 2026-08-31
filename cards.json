@@ -855,5 +855,205 @@
     "cures_conditions": true,
     "prevents_conditions": true,
     "effect_description": "The Ancient Pokémon this card is attached to gets +60 HP, recovers from all Special Conditions, and can't be affected by any Special Conditions."
+  },
+  {
+    "name": "Gimmighoul",
+    "card_type": "Pokemon",
+    "stage": "Basic",
+    "evolves_from": null,
+    "element": "Metal",
+    "weakness": "Fire",
+    "resistance": "Grass",
+    "hp": 50,
+    "prize_yield": 1,
+    "is_rule_box": false,
+    "attacks": [
+      {
+        "name": "Collect",
+        "cost": ["Colorless"],
+        "damage": 0,
+        "draw_count": 1
+      }
+    ],
+    "retreat_cost": 1
+  },
+  {
+    "name": "Gholdengo ex",
+    "card_type": "Pokemon",
+    "stage": "Stage 1",
+    "evolves_from": "Gimmighoul",
+    "element": "Metal",
+    "weakness": "Fire",
+    "resistance": "Grass",
+    "hp": 260,
+    "prize_yield": 2,
+    "is_rule_box": true,
+    "ability": {
+      "name": "Coin Bonus",
+      "type": "activated",
+      "description": "Once during your turn, you may draw a card. If this Pokémon is in the Active Spot, draw 2 cards instead."
+    },
+    "attacks": [
+      {
+        "name": "Make It Rain",
+        "cost": ["Metal"],
+        "damage": 50,
+        "scaling_type": "discard_energy_from_hand",
+        "scaling_multiplier": 50
+      }
+    ],
+    "retreat_cost": 2
+  },
+  {
+    "name": "Charcadet",
+    "card_type": "Pokemon",
+    "stage": "Basic",
+    "evolves_from": null,
+    "element": "Fire",
+    "weakness": "Water",
+    "resistance": null,
+    "hp": 70,
+    "prize_yield": 1,
+    "is_rule_box": false,
+    "attacks": [
+      {
+        "name": "Ember",
+        "cost": ["Fire"],
+        "damage": 20
+      }
+    ],
+    "retreat_cost": 1
+  },
+  {
+    "name": "Ceruledge ex",
+    "card_type": "Pokemon",
+    "stage": "Stage 1",
+    "evolves_from": "Charcadet",
+    "element": "Fire",
+    "weakness": "Water",
+    "resistance": null,
+    "hp": 270,
+    "prize_yield": 2,
+    "is_rule_box": true,
+    "is_tera": true,
+    "attacks": [
+      {
+        "name": "Abyssal Flames",
+        "cost": ["Fire"],
+        "damage": 30,
+        "base_damage": 30,
+        "scaling_type": "discard_energy_count",
+        "scaling_multiplier": 30
+      },
+      {
+        "name": "Amethyst Rage",
+        "cost": ["Fire", "Colorless", "Colorless"],
+        "damage": 280,
+        "discard_all_energy": true
+      }
+    ],
+    "retreat_cost": 2
+  },
+  {
+    "name": "Duraludon",
+    "card_type": "Pokemon",
+    "stage": "Basic",
+    "evolves_from": null,
+    "element": "Metal",
+    "weakness": "Fire",
+    "resistance": "Grass",
+    "hp": 130,
+    "prize_yield": 1,
+    "is_rule_box": false,
+    "attacks": [
+      {
+        "name": "Metal Claw",
+        "cost": ["Metal", "Colorless"],
+        "damage": 50
+      }
+    ],
+    "retreat_cost": 2
+  },
+  {
+    "name": "Archaludon ex",
+    "card_type": "Pokemon",
+    "stage": "Stage 1",
+    "evolves_from": "Duraludon",
+    "element": "Metal",
+    "weakness": "Fire",
+    "resistance": "Grass",
+    "hp": 300,
+    "prize_yield": 2,
+    "is_rule_box": true,
+    "ability": {
+      "name": "Metal Bridge",
+      "type": "passive",
+      "description": "All of your Pokémon that have any Metal Energy attached have no Retreat Cost."
+    },
+    "attacks": [
+      {
+        "name": "Iron Blaster",
+        "cost": ["Metal", "Metal", "Colorless"],
+        "damage": 220
+      }
+    ],
+    "retreat_cost": 3
+  },
+  {
+    "name": "Grand Tree",
+    "card_type": "Trainer",
+    "trainer_type": "Stadium",
+    "is_ace_spec": true,
+    "effect_description": "ACE SPEC: Once during each player's turn, that player may search their deck for a Stage 1 Pokémon that evolves from 1 of their Basic Pokémon in play and evolve it, then search for a Stage 2 Pokémon that evolves from that Pokémon and evolve it."
+  },
+  {
+    "name": "Neutral Center",
+    "card_type": "Trainer",
+    "trainer_type": "Stadium",
+    "is_ace_spec": true,
+    "effect_description": "ACE SPEC: Prevent all damage done to Pokémon in play that don't have a Rule Box by attacks from the opponent's Pokémon ex."
+  },
+  {
+    "name": "Precious Trolley",
+    "card_type": "Trainer",
+    "trainer_type": "Item",
+    "is_ace_spec": true,
+    "effect_description": "ACE SPEC: Search your deck for any number of Basic Pokémon and put them onto your Bench."
+  },
+  {
+    "name": "Dangerous Laser",
+    "card_type": "Trainer",
+    "trainer_type": "Item",
+    "is_ace_spec": true,
+    "inflicts_conditions": ["Burned", "Confused"],
+    "effect_description": "ACE SPEC: Your opponent's Active Pokémon is now Burned and Confused."
+  },
+  {
+    "name": "Night Stretcher",
+    "card_type": "Trainer",
+    "trainer_type": "Item",
+    "effect_description": "Put 1 Pokémon or 1 Basic Energy card from your discard pile into your hand."
+  },
+  {
+    "name": "Earthen Vessel",
+    "card_type": "Trainer",
+    "trainer_type": "Item",
+    "requires_discard_count": 1,
+    "search_energy_count": 2,
+    "effect_description": "You can use this card only if you discard another card from your hand. Search your deck for up to 2 Basic Energy cards, reveal them, and put them into your hand."
+  },
+  {
+    "name": "Bug Catching Set",
+    "card_type": "Trainer",
+    "trainer_type": "Item",
+    "effect_description": "Look at the top 7 cards of your deck. Reveal up to 2 in any combination of Grass Pokémon and Basic Grass Energy cards and put them into your hand."
+  },
+  {
+    "name": "Luminous Energy",
+    "card_type": "Energy",
+    "is_special": true,
+    "energy_units": 1,
+    "is_rainbow": true,
+    "effect_description": "As long as this card is attached to a Pokémon, it provides every type of Energy but provides only 1 Energy at a time. If attached to a Pokémon with any other Special Energy, it provides Colorless Energy instead."
   }
 ]

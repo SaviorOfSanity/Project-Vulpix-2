@@ -155,14 +155,28 @@ class PokemonCard(Card):
                 print(f"{self.name} has been knocked out!")
         return self.is_knocked_out()
 
+    def get_effective_retreat_cost(self, player=None) -> int:
+        """Calculates retreat cost accounting for passive abilities like Archaludon ex's Metal Bridge."""
+        if player:
+            in_play = [player.active_pokemon] + player.bench
+            has_metal_bridge = any(p and p.ability and p.ability.get("name") == "Metal Bridge" for p in in_play)
+            if has_metal_bridge:
+                has_metal_energy = any(e.energy_type == EnergyType.METAL or getattr(e, 'is_rainbow', False) for e in self.attached_energy)
+                if has_metal_energy:
+                    return 0
+        return self.retreat_cost
+
     def can_afford(self, cost: list) -> bool:
         """Checks if the Pokémon has sufficient attached energy to pay an attack or retreat cost."""
         colored_pool = []
+        rainbow_count = 0
         total_units = 0
         for e in self.attached_energy:
             units = getattr(e, 'energy_units', 1)
             total_units += units
-            if not getattr(e, 'is_special', False) or e.energy_type != EnergyType.COLORLESS:
+            if getattr(e, 'is_rainbow', False):
+                rainbow_count += units
+            elif not getattr(e, 'is_special', False) or e.energy_type != EnergyType.COLORLESS:
                 colored_pool.extend([e.energy_type] * units)
 
         cost_copy = list(cost)
@@ -170,6 +184,10 @@ class PokemonCard(Card):
             if req != EnergyType.COLORLESS:
                 if req in colored_pool:
                     colored_pool.remove(req)
+                    cost_copy.remove(req)
+                    total_units -= 1
+                elif rainbow_count > 0:
+                    rainbow_count -= 1
                     cost_copy.remove(req)
                     total_units -= 1
                 else:
@@ -506,6 +524,112 @@ class TrainerCard(Card):
                             print(f"{player.name} used Stadium Artazon to search and bench {benched.name}.")
                         break
             player.shuffle_deck()
+
+        elif self.name == "Dangerous Laser":
+            if opp.active_pokemon:
+                opp.active_pokemon.add_special_condition(SpecialCondition.BURNED, verbose=verbose)
+                opp.active_pokemon.add_special_condition(SpecialCondition.CONFUSED, verbose=verbose)
+                if verbose:
+                    print(f"  Dangerous Laser left {opp.active_pokemon.name} Burned and Confused!")
+
+        elif self.name == "Precious Trolley":
+            max_b = player.get_max_bench_size(game_state)
+            benched_count = 0
+            for i in range(len(player.deck) - 1, -1, -1):
+                if len(player.bench) >= max_b:
+                    break
+                c = player.deck[i]
+                if isinstance(c, PokemonCard) and c.stage == "Basic":
+                    benched = player.deck.pop(i)
+                    benched.turn_played = game_state.turn_number
+                    player.bench.append(benched)
+                    benched_count += 1
+                    if verbose:
+                        print(f"  Precious Trolley benched {benched.name}.")
+            player.shuffle_deck()
+
+        elif self.name == "Night Stretcher":
+            for i, c in enumerate(player.discard_pile):
+                if isinstance(c, PokemonCard) or (isinstance(c, EnergyCard) and not getattr(c, 'is_special', False)):
+                    found = player.discard_pile.pop(i)
+                    player.hand.append(found)
+                    if verbose:
+                        print(f"  Night Stretcher put {found.name} from discard into hand.")
+                    break
+
+        elif self.name == "Earthen Vessel":
+            if len(player.hand) >= 1:
+                discarded = player.hand.pop(0)
+                player.discard_pile.append(discarded)
+                found_e = 0
+                for i in range(len(player.deck) - 1, -1, -1):
+                    if found_e >= 2:
+                        break
+                    c = player.deck[i]
+                    if isinstance(c, EnergyCard) and not getattr(c, 'is_special', False):
+                        e = player.deck.pop(i)
+                        player.hand.append(e)
+                        found_e += 1
+                player.shuffle_deck()
+                if verbose:
+                    print(f"  Earthen Vessel searched {found_e} Basic Energy into hand.")
+
+        elif self.name == "Bug Catching Set":
+            top_7 = [player.deck.pop(0) for _ in range(min(7, len(player.deck)))]
+            taken = 0
+            remaining = []
+            for c in top_7:
+                if taken < 2 and ((isinstance(c, PokemonCard) and c.element == EnergyType.GRASS) or (isinstance(c, EnergyCard) and c.energy_type == EnergyType.GRASS)):
+                    player.hand.append(c)
+                    taken += 1
+                    if verbose:
+                        print(f"  Bug Catching Set took {c.name} into hand.")
+                else:
+                    remaining.append(c)
+            player.deck.extend(remaining)
+            player.shuffle_deck()
+
+        elif self.name == "Grand Tree":
+            # Grand Tree Stadium: Search deck for Stage 1, evolve, then Stage 2, evolve
+            targets = [player.active_pokemon] + player.bench
+            for t_idx, target in enumerate(targets):
+                if target and target.stage == "Basic":
+                    # Look for Stage 1 in deck
+                    for i, c in enumerate(player.deck):
+                        if isinstance(c, PokemonCard) and c.stage == "Stage 1" and c.evolves_from == target.name:
+                            s1 = player.deck.pop(i)
+                            s1.damage_counters = target.damage_counters
+                            s1.attached_energy = target.attached_energy
+                            s1.attached_tool = target.attached_tool
+                            s1.base_card = target
+                            s1.turn_played = game_state.turn_number
+                            s1.clear_special_conditions()
+                            if t_idx == 0:
+                                player.active_pokemon = s1
+                            else:
+                                player.bench[t_idx - 1] = s1
+                            if verbose:
+                                print(f"  Grand Tree evolved {target.name} into {s1.name}!")
+                            
+                            # Now search for Stage 2
+                            for j, s2_c in enumerate(player.deck):
+                                if isinstance(s2_c, PokemonCard) and s2_c.stage == "Stage 2" and s2_c.evolves_from == s1.name:
+                                    s2 = player.deck.pop(j)
+                                    s2.damage_counters = s1.damage_counters
+                                    s2.attached_energy = s1.attached_energy
+                                    s2.attached_tool = s1.attached_tool
+                                    s2.base_card = s1
+                                    s2.turn_played = game_state.turn_number
+                                    s2.clear_special_conditions()
+                                    if t_idx == 0:
+                                        player.active_pokemon = s2
+                                    else:
+                                        player.bench[t_idx - 1] = s2
+                                    if verbose:
+                                        print(f"  Grand Tree further evolved {s1.name} into {s2.name}!")
+                                    break
+                            player.shuffle_deck()
+                            return
 
     def clone(self):
         return TrainerCard(
@@ -979,9 +1103,20 @@ class GameState:
                             moves.append(('attach_energy', i, target_idx))
 
         # --- Stadium Actions ---
-        if self.active_stadium and self.active_stadium.name == "Artazon" and not self.stadium_played_this_turn:
-            if len(player.bench) < max_bench:
+        if self.active_stadium and not self.stadium_played_this_turn:
+            if self.active_stadium.name == "Artazon" and len(player.bench) < max_bench:
                 moves.append(('use_stadium_ability',))
+            elif self.active_stadium.name == "Grand Tree":
+                # Valid if any in-play basic has stage 1 in deck
+                targets = [player.active_pokemon] + player.bench
+                can_grand_tree = False
+                for t in targets:
+                    if t and t.stage == "Basic":
+                        if any(isinstance(c, PokemonCard) and c.stage == "Stage 1" and c.evolves_from == t.name for c in player.deck):
+                            can_grand_tree = True
+                            break
+                if can_grand_tree:
+                    moves.append(('use_stadium_ability',))
 
         # --- In-Play Pokémon Activated Abilities ---
         in_play = [player.active_pokemon] + player.bench
@@ -1038,10 +1173,11 @@ class GameState:
                     if active_p.can_afford(attack['cost']):
                         moves.append(('attack', i))
 
-            # Retreat (blocked by Sleep and Paralysis)
+            # Retreat (blocked by Sleep and Paralysis; respects Archaludon ex Metal Bridge 0-cost)
             if not is_locked:
-                retreat_cost = [EnergyType.COLORLESS] * active_p.retreat_cost
-                if len(player.bench) > 0 and not self.retreated_this_turn and active_p.can_afford(retreat_cost):
+                eff_cost = active_p.get_effective_retreat_cost(player)
+                retreat_cost_req = [EnergyType.COLORLESS] * eff_cost
+                if len(player.bench) > 0 and not self.retreated_this_turn and (eff_cost == 0 or active_p.can_afford(retreat_cost_req)):
                     for bench_idx in range(len(player.bench)):
                         moves.append(('retreat', bench_idx))
 
@@ -1212,6 +1348,14 @@ class GameState:
                 if opponent.active_pokemon:
                     opponent.active_pokemon.add_special_condition(SpecialCondition.POISONED, poison_dmg=10, turn_applied=self.turn_number, verbose=verbose)
 
+            elif ab_name == "Coin Bonus":
+                # Gholdengo ex: draw 2 if Active, draw 1 if benched
+                cards_to_draw = 2 if target_idx == 0 else 1
+                drawn = player.draw_cards(cards_to_draw)
+                if verbose:
+                    loc_str = "Active Spot" if target_idx == 0 else "Bench"
+                    print(f"  Coin Bonus ({loc_str}) drew {len(drawn)} card(s).")
+
             return False
 
         elif action_type == 'play_supporter':
@@ -1276,12 +1420,13 @@ class GameState:
 
         elif action_type == 'retreat':
             bench_idx_to_promote = move[1]
-            cost = player.active_pokemon.retreat_cost
+            cost = player.active_pokemon.get_effective_retreat_cost(player)
             if verbose:
-                print(f"{player.name} discards {cost} energy to retreat {player.active_pokemon.name}.")
+                print(f"{player.name} retreats {player.active_pokemon.name} (Cost: {cost} energy).")
 
-            player.discard_pile.extend(player.active_pokemon.attached_energy[:cost])
-            del player.active_pokemon.attached_energy[:cost]
+            if cost > 0:
+                player.discard_pile.extend(player.active_pokemon.attached_energy[:cost])
+                del player.active_pokemon.attached_energy[:cost]
 
             promoted_pokemon = player.bench[bench_idx_to_promote]
             player.active_pokemon.clear_special_conditions()
@@ -1333,6 +1478,7 @@ class GameState:
         target_any = chosen_attack.get('target_any', False)
         inflicts_cond = chosen_attack.get('inflicts_condition')
         cures_cond = chosen_attack.get('cures_conditions', False)
+        discard_all_e = chosen_attack.get('discard_all_energy', False)
 
         # Dynamic Attack Scaling
         if chosen_attack['name'] == "Burning Darkness":
@@ -1367,6 +1513,30 @@ class GameState:
             if verbose:
                 print(f"  Unified Barrage scaled with {len(player.bench)} benched Pokémon -> {base_damage} DMG!")
 
+        elif scaling_type == "discard_energy_from_hand":
+            # Gholdengo ex Make It Rain: 50x per Basic Energy discarded from hand
+            basic_energies_in_hand = [c for c in player.hand if isinstance(c, EnergyCard) and not getattr(c, 'is_special', False)]
+            discard_count = len(basic_energies_in_hand)
+            for e in basic_energies_in_hand:
+                player.hand.remove(e)
+                player.discard_pile.append(e)
+            base_damage = 50 * discard_count
+            if verbose:
+                print(f"  Make It Rain discarded {discard_count} Energy from hand -> {base_damage} DMG!")
+
+        elif scaling_type == "discard_energy_count":
+            # Ceruledge ex Abyssal Flames: 30 + 30x for each Energy card in discard pile
+            discard_e_count = sum(1 for c in player.discard_pile if isinstance(c, EnergyCard))
+            base_damage = 30 + (30 * discard_e_count)
+            if verbose:
+                print(f"  Abyssal Flames scaled with {discard_e_count} Energy in discard -> {base_damage} DMG!")
+
+        if discard_all_e:
+            player.discard_pile.extend(attacker.attached_energy)
+            attacker.attached_energy.clear()
+            if verbose:
+                print(f"  {chosen_attack['name']} discarded all energy attached to {attacker.name}.")
+
         damage = base_damage
 
         # Special Energy Damage Modifiers (e.g. Double Turbo Energy -20 DMG)
@@ -1387,10 +1557,13 @@ class GameState:
             if verbose:
                 print(f"  Weakness applied ({attacker.element.name} vs {defender.weakness.name}): {base_damage} -> {damage} DMG!")
 
-        if defender.resistance and defender.resistance == attacker.element:
-            damage = max(0, damage - 30)
-            if verbose:
-                print(f"  Resistance applied ({attacker.element.name} vs {defender.resistance.name}): -> {damage} DMG!")
+        # Neutral Center Stadium ACE SPEC Protection:
+        # Prevent all damage done to Pokemon that don't have a Rule Box by attacks from opponent's Pokemon ex
+        if self.active_stadium and self.active_stadium.name == "Neutral Center":
+            if attacker.is_rule_box and not defender.is_rule_box:
+                damage = 0
+                if verbose:
+                    print(f"  Neutral Center prevented all attack damage from {attacker.name} to non-Rule Box {defender.name}!")
 
         if verbose:
             print(f"{attacker.name} uses {chosen_attack['name']} for {damage} total damage!")
@@ -1998,14 +2171,8 @@ def run_simulation(
     return wins, win_reasons
 
 
-# ============================================================================
-# 7. Main Execution Block
-# ============================================================================
-
-if __name__ == '__main__':
-    factory = CardFactory('cards.json')
-
-    deck_gardevoir = (
+STANDARD_ARCHETYPES = {
+    "Gardevoir ex": (
         ["Ralts"] * 4 +
         ["Kirlia"] * 4 +
         ["Gardevoir ex"] * 2 +
@@ -2023,9 +2190,8 @@ if __name__ == '__main__':
         ["Iono"] * 3 +
         ["Psychic Energy"] * 18 +
         ["Darkness Energy"] * 4
-    )
-
-    deck_terapagos = (
+    ),
+    "Terapagos ex": (
         ["Terapagos ex"] * 3 +
         ["Hoothoot"] * 3 +
         ["Noctowl"] * 3 +
@@ -2043,15 +2209,272 @@ if __name__ == '__main__':
         ["Grass Energy"] * 6 +
         ["Water Energy"] * 6 +
         ["Lightning Energy"] * 7
+    ),
+    "Charizard ex": (
+        ["Charmander"] * 4 +
+        ["Charmeleon"] * 1 +
+        ["Charizard ex"] * 3 +
+        ["Pidgey"] * 3 +
+        ["Pidgeot ex"] * 2 +
+        ["Unfair Stamp"] * 1 +
+        ["Rare Candy"] * 4 +
+        ["Buddy-Buddy Poffin"] * 4 +
+        ["Ultra Ball"] * 4 +
+        ["Nest Ball"] * 2 +
+        ["Super Rod"] * 2 +
+        ["Counter Catcher"] * 1 +
+        ["Professor's Research"] * 4 +
+        ["Boss's Orders"] * 2 +
+        ["Iono"] * 3 +
+        ["Artazon"] * 1 +
+        ["Fire Energy"] * 15 +
+        ["Double Turbo Energy"] * 4
+    ),
+    "Dragapult ex": (
+        ["Dreepy"] * 4 +
+        ["Drakloak"] * 4 +
+        ["Dragapult ex"] * 3 +
+        ["Prime Catcher"] * 1 +
+        ["Buddy-Buddy Poffin"] * 4 +
+        ["Rare Candy"] * 3 +
+        ["Ultra Ball"] * 4 +
+        ["Super Rod"] * 2 +
+        ["Counter Catcher"] * 1 +
+        ["Professor's Research"] * 4 +
+        ["Boss's Orders"] * 2 +
+        ["Iono"] * 3 +
+        ["Fire Energy"] * 8 +
+        ["Psychic Energy"] * 8 +
+        ["Jet Energy"] * 4 +
+        ["Mist Energy"] * 5
+    ),
+    "Raging Bolt ex": (
+        ["Raging Bolt ex"] * 4 +
+        ["Teal Mask Ogerpon ex"] * 4 +
+        ["Prime Catcher"] * 1 +
+        ["Professor Sada's Vitality"] * 4 +
+        ["Nest Ball"] * 4 +
+        ["Ultra Ball"] * 4 +
+        ["Super Rod"] * 2 +
+        ["Bravery Charm"] * 3 +
+        ["Professor's Research"] * 4 +
+        ["Boss's Orders"] * 2 +
+        ["Iono"] * 3 +
+        ["Grass Energy"] * 13 +
+        ["Lightning Energy"] * 6 +
+        ["Fighting Energy"] * 6
+    ),
+    "Miraidon ex": (
+        ["Miraidon ex"] * 3 +
+        ["Iron Hands ex"] * 3 +
+        ["Pikachu ex"] * 2 +
+        ["Prime Catcher"] * 1 +
+        ["Electric Generator"] * 4 +
+        ["Nest Ball"] * 4 +
+        ["Ultra Ball"] * 4 +
+        ["Super Rod"] * 2 +
+        ["Bravery Charm"] * 2 +
+        ["Double Turbo Energy"] * 4 +
+        ["Professor's Research"] * 4 +
+        ["Boss's Orders"] * 2 +
+        ["Iono"] * 2 +
+        ["Lightning Energy"] * 23
+    ),
+    "Gholdengo ex": (
+        ["Gimmighoul"] * 4 +
+        ["Gholdengo ex"] * 4 +
+        ["Fezandipiti ex"] * 1 +
+        ["Prime Catcher"] * 1 +
+        ["Buddy-Buddy Poffin"] * 4 +
+        ["Ultra Ball"] * 4 +
+        ["Nest Ball"] * 3 +
+        ["Super Rod"] * 2 +
+        ["Night Stretcher"] * 2 +
+        ["Earthen Vessel"] * 4 +
+        ["Professor's Research"] * 4 +
+        ["Boss's Orders"] * 2 +
+        ["Iono"] * 2 +
+        ["Metal Energy"] * 16 +
+        ["Water Energy"] * 7
+    ),
+    "Ceruledge ex": (
+        ["Charcadet"] * 4 +
+        ["Ceruledge ex"] * 4 +
+        ["Fezandipiti ex"] * 1 +
+        ["Secret Box"] * 1 +
+        ["Buddy-Buddy Poffin"] * 4 +
+        ["Ultra Ball"] * 4 +
+        ["Nest Ball"] * 3 +
+        ["Super Rod"] * 2 +
+        ["Night Stretcher"] * 2 +
+        ["Earthen Vessel"] * 4 +
+        ["Professor's Research"] * 4 +
+        ["Boss's Orders"] * 2 +
+        ["Fire Energy"] * 21 +
+        ["Double Turbo Energy"] * 4
     )
+}
 
-    run_simulation(
+
+class TournamentMatrixRunner:
+    """
+    Automated Round-Robin Tournament Simulator across N Standard Format Archetypes.
+    - Generates NxN win-rate matchup matrix.
+    - Computes average prize differentials, turn count distributions, and game lengths.
+    - Calculates Meta Tier Ratings:
+        * Tier S (Tier 1+): Win Rate >= 60.0%
+        * Tier 1: Win Rate 50.0% - 59.9%
+        * Tier 2: Win Rate < 50.0%
+    """
+    def __init__(
+        self,
+        archetypes: dict = None,
+        card_factory: CardFactory = None,
+        games_per_matchup: int = 4,
         controller1_type=MCTSController,
         controller2_type=TurnBasedGreedyAI,
-        num_games=10,
+        c1_kwargs: dict = None,
+        c2_kwargs: dict = None
+    ):
+        self.factory = card_factory or CardFactory('cards.json')
+        self.archetypes = archetypes or STANDARD_ARCHETYPES
+        self.games_per_matchup = games_per_matchup
+        self.c1_type = controller1_type
+        self.c2_type = controller2_type
+        self.c1_kwargs = c1_kwargs or {"iteration_limit": 150, "simulation_depth": 10}
+        self.c2_kwargs = c2_kwargs or {}
+
+    def run_round_robin(self, verbose: bool = False) -> dict:
+        names = list(self.archetypes.keys())
+        n = len(names)
+        results_matrix = {d1: {d2: {"wins": 0, "losses": 0, "draws": 0, "total": 0} for d2 in names} for d1 in names}
+        overall_stats = {d: {"wins": 0, "losses": 0, "draws": 0, "total": 0, "prizes_taken": 0, "prizes_lost": 0} for d in names}
+
+        print(f"\n{'='*85}")
+        print(f"  STANDARD FORMAT TOURNAMENT MATRIX: {n} Archetypes ({self.games_per_matchup} Games/Matchup)")
+        print(f"{'='*85}\n")
+
+        start_time = time.time()
+        total_matches = (n * (n - 1)) // 2
+        match_idx = 0
+
+        for i in range(n):
+            for j in range(i + 1, n):
+                d1_name, d2_name = names[i], names[j]
+                match_idx += 1
+                print(f"[{match_idx}/{total_matches}] Simulating: {d1_name} vs {d2_name}...")
+
+                d1_list = self.archetypes[d1_name]
+                d2_list = self.archetypes[d2_name]
+
+                for g in range(self.games_per_matchup):
+                    c1 = self.c1_type(**self.c1_kwargs)
+                    c2 = self.c2_type(**self.c2_kwargs)
+
+                    if g % 2 == 0:
+                        p1 = Player(d1_name, d1_list, self.factory, controller=c1)
+                        p2 = Player(d2_name, d2_list, self.factory, controller=c2)
+                        game = GameState(p1, p2)
+                        winner, reason = game.run_game(verbose=verbose)
+                        
+                        p1_prizes = 6 - len(p1.prize_cards)
+                        p2_prizes = 6 - len(p2.prize_cards)
+                        overall_stats[d1_name]["prizes_taken"] += p1_prizes
+                        overall_stats[d1_name]["prizes_lost"] += p2_prizes
+                        overall_stats[d2_name]["prizes_taken"] += p2_prizes
+                        overall_stats[d2_name]["prizes_lost"] += p1_prizes
+
+                        if winner is p1:
+                            results_matrix[d1_name][d2_name]["wins"] += 1
+                            results_matrix[d2_name][d1_name]["losses"] += 1
+                            overall_stats[d1_name]["wins"] += 1
+                            overall_stats[d2_name]["losses"] += 1
+                        elif winner is p2:
+                            results_matrix[d1_name][d2_name]["losses"] += 1
+                            results_matrix[d2_name][d1_name]["wins"] += 1
+                            overall_stats[d1_name]["losses"] += 1
+                            overall_stats[d2_name]["wins"] += 1
+                        else:
+                            results_matrix[d1_name][d2_name]["draws"] += 1
+                            results_matrix[d2_name][d1_name]["draws"] += 1
+                            overall_stats[d1_name]["draws"] += 1
+                            overall_stats[d2_name]["draws"] += 1
+                    else:
+                        p2 = Player(d2_name, d2_list, self.factory, controller=c1)
+                        p1 = Player(d1_name, d1_list, self.factory, controller=c2)
+                        game = GameState(p2, p1)
+                        winner, reason = game.run_game(verbose=verbose)
+
+                        p1_prizes = 6 - len(p1.prize_cards)
+                        p2_prizes = 6 - len(p2.prize_cards)
+                        overall_stats[d1_name]["prizes_taken"] += p1_prizes
+                        overall_stats[d1_name]["prizes_lost"] += p2_prizes
+                        overall_stats[d2_name]["prizes_taken"] += p2_prizes
+                        overall_stats[d2_name]["prizes_lost"] += p1_prizes
+
+                        if winner is p1:
+                            results_matrix[d1_name][d2_name]["wins"] += 1
+                            results_matrix[d2_name][d1_name]["losses"] += 1
+                            overall_stats[d1_name]["wins"] += 1
+                            overall_stats[d2_name]["losses"] += 1
+                        elif winner is p2:
+                            results_matrix[d1_name][d2_name]["losses"] += 1
+                            results_matrix[d2_name][d1_name]["wins"] += 1
+                            overall_stats[d1_name]["losses"] += 1
+                            overall_stats[d2_name]["wins"] += 1
+                        else:
+                            results_matrix[d1_name][d2_name]["draws"] += 1
+                            results_matrix[d2_name][d1_name]["draws"] += 1
+                            overall_stats[d1_name]["draws"] += 1
+                            overall_stats[d2_name]["draws"] += 1
+
+                    results_matrix[d1_name][d2_name]["total"] += 1
+                    results_matrix[d2_name][d1_name]["total"] += 1
+                    overall_stats[d1_name]["total"] += 1
+                    overall_stats[d2_name]["total"] += 1
+
+        elapsed = time.time() - start_time
+        print(f"\n{'='*85}")
+        print(f"  TOURNAMENT MATRIX RESULTS ({total_matches * self.games_per_matchup} Total Games in {elapsed:.2f}s)")
+        print(f"{'='*85}\n")
+
+        # Meta Tier List Ranking Table
+        ranked_decks = sorted(
+            names,
+            key=lambda d: (overall_stats[d]["wins"] / max(1, overall_stats[d]["total"]), overall_stats[d]["prizes_taken"] - overall_stats[d]["prizes_lost"]),
+            reverse=True
+        )
+
+        print(f"{'Rank':<5} | {'Archetype':<16} | {'Tier':<6} | {'Record (W-L-D)':<16} | {'Win Rate':<10} | {'Prize Diff'}")
+        print(f"{'-'*5}-+-{'-'*16}-+-{'-'*6}-+-{'-'*16}-+-{'-'*10}-+-{'-'*10}")
+
+        for rank, d in enumerate(ranked_decks, 1):
+            s = overall_stats[d]
+            total = max(1, s["total"])
+            wr = (s["wins"] / total) * 100
+            diff = s["prizes_taken"] - s["prizes_lost"]
+            tier = "Tier S" if wr >= 60.0 else ("Tier 1" if wr >= 50.0 else "Tier 2")
+            record_str = f"{s['wins']}-{s['losses']}-{s['draws']}"
+            print(f"{rank:<5} | {d:<16} | {tier:<6} | {record_str:<16} | {wr:>6.1f}%    | {diff:+d}")
+
+        print(f"\n{'='*85}\n")
+        return {
+            "ranked_decks": ranked_decks,
+            "overall_stats": overall_stats,
+            "results_matrix": results_matrix,
+            "elapsed_seconds": elapsed
+        }
+
+
+# ============================================================================
+# 7. Main Execution Block
+# ============================================================================
+
+if __name__ == '__main__':
+    factory = CardFactory('cards.json')
+    runner = TournamentMatrixRunner(
         card_factory=factory,
-        deck1_names=deck_gardevoir,
-        deck2_names=deck_terapagos,
-        c1_kwargs={"iteration_limit": 250, "simulation_depth": 14},
-        verbose_moves=False
+        games_per_matchup=2,
+        c1_kwargs={"iteration_limit": 100, "simulation_depth": 8}
     )
+    runner.run_round_robin(verbose=False)
