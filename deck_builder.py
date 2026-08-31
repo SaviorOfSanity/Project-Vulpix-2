@@ -377,32 +377,105 @@ class DeckBuilder:
         import random
         rogue_concepts = [
             {
-                "name": "Terapagos Neutral Center Lock",
-                "attacker": "Terapagos ex",
+                "name": "Cornerstone Safeguard Anti-Ability Lock",
+                "attacker": "Cornerstone Mask Ogerpon ex",
                 "ace_spec": "Neutral Center",
-                "concept": "Prize-Denial Lock",
-                "why_it_wins": "Standard meta decks heavily depend on Pokémon ex (Charizard, Gardevoir, Ceruledge, Raging Bolt). Neutral Center creates absolute attack immunity against ex Pokémon while Crown Opal deals 180 damage."
+                "concept": "Total Immunity Against Pokémon with Abilities",
+                "why_it_wins": "Meta titans like Charizard ex, Gardevoir ex, Pidgeot ex, Gholdengo ex, and Archaludon ex rely on abilities. Cornerstone Stance completely blocks 100% of damage from any Pokémon with an ability!"
             },
             {
-                "name": "Ceruledge Grand Tree Turbo",
-                "attacker": "Ceruledge ex",
-                "ace_spec": "Grand Tree",
-                "concept": "Turn 1 Instant Chain-Evolution",
-                "why_it_wins": "Standard decks take 2-3 turns to set up Stage 2 lines. Grand Tree evolves Charcadet to Ceruledge ex instantly, enabling 250+ damage Abyssal Flames before the opponent attacks."
+                "name": "Applin & Dipplin Festival Lead Double-Attack",
+                "attacker": "Dipplin",
+                "ace_spec": "Secret Box",
+                "concept": "Single-Prize Double Striker Swarm",
+                "why_it_wins": "With Festival Grounds, Dipplin attacks twice per turn for just 1 Grass Energy (100 + 100 dmg). Giving up only 1 prize card crushes the prize exchange against multi-prize ex decks."
             },
             {
-                "name": "Gardevoir Hero's Cape Tank",
-                "attacker": "Gardevoir ex",
+                "name": "Dusknoir Cursed Blast + Drifloon 360 Nuke",
+                "attacker": "Drifloon",
+                "secondary": "Dusknoir",
                 "ace_spec": "Hero's Cape",
-                "concept": "410 HP Unkillable Juggernaut",
-                "why_it_wins": "Hero's Cape pushes Gardevoir ex to an unprecedented 410 HP. No Standard format attacker can 1HKO it without 4+ energy discards, turning the prize trade overwhelmingly in your favor."
+                "concept": "Ghost Catapult 1-Prize Knock Out Engine",
+                "why_it_wins": "Dusknoir detonates Cursed Blast to place 130 damage counters anywhere on the opponent's bench (wiping out support engines). Drifloon with Hero's Cape hits 360+ damage to 1HKO 330 HP Stage 2 ex Pokémon!"
+            },
+            {
+                "name": "Milotic ex Anti-Tera Lockdown",
+                "attacker": "Milotic ex",
+                "ace_spec": "Prime Catcher",
+                "concept": "Complete Immunity to Tera Pokémon",
+                "why_it_wins": "Sparkling Scales prevents all damage and effects from Tera Pokémon (Terapagos ex, Dragapult ex, Charizard ex). Tera decks cannot damage Milotic ex."
+            },
+            {
+                "name": "Bloodmoon Ursaluna Endgame Sweeper",
+                "attacker": "Bloodmoon Ursaluna ex",
+                "ace_spec": "Hero's Cape",
+                "concept": "Zero-Energy 240 Damage Finisher",
+                "why_it_wins": "As opponent takes prize cards, Blood Moon drops to 0-1 energy cost, creating a 360 HP endgame juggernaut that 1HKOs active attackers for free."
+            },
+            {
+                "name": "Bouffalant + Terapagos Colorless Bunker",
+                "attacker": "Terapagos ex",
+                "secondary": "Bouffalant",
+                "ace_spec": "Neutral Center",
+                "concept": "Impenetrable -60 Damage Reduction Fortress",
+                "why_it_wins": "Bouffalant's Curly Wall reduces damage taken by Colorless Basics by 60. Combined with Crown Opal (180 dmg) and Neutral Center, meta decks cannot break through."
+            },
+            {
+                "name": "Pecharunt ex + Brute Bonnet Toxic Melter",
+                "attacker": "Pecharunt ex",
+                "secondary": "Brute Bonnet",
+                "ace_spec": "Dangerous Laser",
+                "concept": "Triple Special Condition Passive Burn",
+                "why_it_wins": "Dangerous Laser + Toxic Boost inflicts Poison, Burn, and Confusion. Munkidori's Adrena-Brain moves damage counters, dealing 90+ passive damage between turns without even attacking."
+            },
+            {
+                "name": "Archaludon ex Heavy Metal Bridge",
+                "attacker": "Archaludon ex",
+                "ace_spec": "Grand Tree",
+                "concept": "300 HP Metal Energy Recycler",
+                "why_it_wins": "300 HP Metal powerhouse accelerates discarded Metal Energy directly onto attackers while Metal Defender provides passive damage reduction."
+            },
+            {
+                "name": "Iron Hands ex Prize Accelerator",
+                "attacker": "Iron Hands ex",
+                "ace_spec": "Prime Catcher",
+                "concept": "3-Prize Multiplier Blitz",
+                "why_it_wins": "Amp You Very Much takes 3 Prize cards per ex Knock Out. Taking 2 KOs on opposing 2-prize ex Pokémon wins the match in just 2 turns."
+            },
+            {
+                "name": "Pikachu ex Topaz Bolt Burst",
+                "attacker": "Pikachu ex",
+                "ace_spec": "Sparkling Crystal",
+                "concept": "300 Damage Turn-2 Lightning Cannon",
+                "why_it_wins": "Sparkling Crystal reduces Topaz Bolt's cost, firing 300 damage by Turn 2 to 1HKO almost every target in the Standard Format."
+            },
+            {
+                "name": "Froslass Freezing Shroud Ability-Punisher",
+                "attacker": "Froslass",
+                "secondary": "Munkidori",
+                "ace_spec": "Neutral Center",
+                "concept": "Passive Board-Wide Freeze",
+                "why_it_wins": "Freezing Shroud passively damages all Pokémon with abilities during Pokémon Checkup. Ability-dependent decks (Pidgeot, Fezandipiti, Kirlia) collapse without attacking."
+            },
+            {
+                "name": "Latias ex + Raging Bolt Speed Turbo",
+                "attacker": "Raging Bolt ex",
+                "secondary": "Latias ex",
+                "ace_spec": "Prime Catcher",
+                "concept": "Zero-Retreat Unlimited Energy Cannon",
+                "why_it_wins": "Latias ex gives free retreat to all Basic Pokémon. Discards unlimited energies from anywhere on your board to hit 280-420+ damage on Turn 1-2."
             }
         ]
 
-        chosen = random.choice(rogue_concepts)
+        if not hasattr(self, '_rogue_cycle') or not self._rogue_cycle:
+            self._rogue_cycle = list(rogue_concepts)
+            random.shuffle(self._rogue_cycle)
+
+        chosen = self._rogue_cycle.pop(0)
 
         deck = self.generate_deck_from_scratch(
             primary_attacker=chosen["attacker"],
+            secondary_attacker=chosen.get("secondary"),
             preferred_ace_spec=chosen["ace_spec"]
         )
         ptcgl_text = self.export_to_ptcgl(deck)
@@ -416,6 +489,8 @@ class DeckBuilder:
             "decklist": deck,
             "ptcgl_text": ptcgl_text
         }
+
+
 
 
 

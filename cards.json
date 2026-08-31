@@ -1055,5 +1055,337 @@
     "energy_units": 1,
     "is_rainbow": true,
     "effect_description": "As long as this card is attached to a Pokémon, it provides every type of Energy but provides only 1 Energy at a time. If attached to a Pokémon with any other Special Energy, it provides Colorless Energy instead."
+  },
+  {
+    "name": "Cornerstone Mask Ogerpon ex",
+    "card_type": "Pokemon",
+    "stage": "Basic",
+    "evolves_from": null,
+    "element": "Fighting",
+    "weakness": "Grass",
+    "resistance": null,
+    "hp": 210,
+    "prize_yield": 2,
+    "is_rule_box": true,
+    "ability": {
+      "name": "Cornerstone Stance",
+      "type": "passive",
+      "description": "Prevent all damage done to this Pokémon by attacks from your opponent's Pokémon that have an Ability."
+    },
+    "attacks": [
+      {
+        "name": "Demolish",
+        "cost": ["Fighting", "Colorless", "Colorless"],
+        "damage": 140,
+        "shred": true
+      }
+    ],
+    "retreat_cost": 1
+  },
+  {
+    "name": "Bloodmoon Ursaluna ex",
+    "card_type": "Pokemon",
+    "stage": "Basic",
+    "evolves_from": null,
+    "element": "Colorless",
+    "weakness": "Fighting",
+    "resistance": null,
+    "hp": 260,
+    "prize_yield": 2,
+    "is_rule_box": true,
+    "ability": {
+      "name": "Seasoned Skill",
+      "type": "passive",
+      "description": "Blood Moon costs 1 Colorless less for each Prize card your opponent has taken."
+    },
+    "attacks": [
+      {
+        "name": "Blood Moon",
+        "cost": ["Colorless", "Colorless", "Colorless", "Colorless", "Colorless"],
+        "damage": 240
+      }
+    ],
+    "retreat_cost": 3
+  },
+  {
+    "name": "Applin",
+    "card_type": "Pokemon",
+    "stage": "Basic",
+    "evolves_from": null,
+    "element": "Grass",
+    "weakness": "Fire",
+    "resistance": null,
+    "hp": 40,
+    "prize_yield": 1,
+    "is_rule_box": false,
+    "attacks": [
+      {
+        "name": "Rollout",
+        "cost": ["Grass"],
+        "damage": 10
+      }
+    ],
+    "retreat_cost": 1
+  },
+  {
+    "name": "Dipplin",
+    "card_type": "Pokemon",
+    "stage": "Stage 1",
+    "evolves_from": "Applin",
+    "element": "Grass",
+    "weakness": "Fire",
+    "resistance": null,
+    "hp": 90,
+    "prize_yield": 1,
+    "is_rule_box": false,
+    "ability": {
+      "name": "Festival Lead",
+      "type": "passive",
+      "description": "If Festival Grounds is in play, this Pokémon may use its attack twice each turn."
+    },
+    "attacks": [
+      {
+        "name": "Do the Wave",
+        "cost": ["Grass"],
+        "damage": 100
+      }
+    ],
+    "retreat_cost": 2
+  },
+  {
+    "name": "Festival Grounds",
+    "card_type": "Trainer",
+    "trainer_type": "Stadium",
+    "effect_description": "Each Pokémon in play that has any Energy attached to it can't be affected by any Special Conditions."
+  },
+  {
+    "name": "Duskull",
+    "card_type": "Pokemon",
+    "stage": "Basic",
+    "evolves_from": null,
+    "element": "Psychic",
+    "weakness": "Darkness",
+    "resistance": "Fighting",
+    "hp": 60,
+    "prize_yield": 1,
+    "is_rule_box": false,
+    "attacks": [
+      {
+        "name": "Collect",
+        "cost": ["Psychic"],
+        "damage": 0
+      }
+    ],
+    "retreat_cost": 1
+  },
+  {
+    "name": "Dusclops",
+    "card_type": "Pokemon",
+    "stage": "Stage 1",
+    "evolves_from": "Duskull",
+    "element": "Psychic",
+    "weakness": "Darkness",
+    "resistance": "Fighting",
+    "hp": 90,
+    "prize_yield": 1,
+    "is_rule_box": false,
+    "ability": {
+      "name": "Cursed Blast",
+      "type": "activated",
+      "description": "Once during your turn, you may put 5 damage counters on 1 of your opponent's Pokémon. If you do, this Pokémon is Knocked Out."
+    },
+    "attacks": [
+      {
+        "name": "Will-O-Wisp",
+        "cost": ["Psychic", "Colorless"],
+        "damage": 40
+      }
+    ],
+    "retreat_cost": 2
+  },
+  {
+    "name": "Dusknoir",
+    "card_type": "Pokemon",
+    "stage": "Stage 2",
+    "evolves_from": "Dusclops",
+    "element": "Psychic",
+    "weakness": "Darkness",
+    "resistance": "Fighting",
+    "hp": 160,
+    "prize_yield": 1,
+    "is_rule_box": false,
+    "ability": {
+      "name": "Cursed Blast",
+      "type": "activated",
+      "description": "Once during your turn, you may put 13 damage counters on 1 of your opponent's Pokémon. If you do, this Pokémon is Knocked Out."
+    },
+    "attacks": [
+      {
+        "name": "Shadow Bind",
+        "cost": ["Psychic", "Psychic", "Colorless"],
+        "damage": 150
+      }
+    ],
+    "retreat_cost": 3
+  },
+  {
+    "name": "Feebas",
+    "card_type": "Pokemon",
+    "stage": "Basic",
+    "evolves_from": null,
+    "element": "Water",
+    "weakness": "Lightning",
+    "resistance": null,
+    "hp": 30,
+    "prize_yield": 1,
+    "is_rule_box": false,
+    "attacks": [
+      {
+        "name": "Splash",
+        "cost": ["Water"],
+        "damage": 10
+      }
+    ],
+    "retreat_cost": 1
+  },
+  {
+    "name": "Milotic ex",
+    "card_type": "Pokemon",
+    "stage": "Stage 1",
+    "evolves_from": "Feebas",
+    "element": "Water",
+    "weakness": "Lightning",
+    "resistance": null,
+    "hp": 270,
+    "prize_yield": 2,
+    "is_rule_box": true,
+    "ability": {
+      "name": "Sparkling Scales",
+      "type": "passive",
+      "description": "Prevent all damage and effects done to this Pokémon by attacks from your opponent's Tera Pokémon."
+    },
+    "attacks": [
+      {
+        "name": "Hypno Splash",
+        "cost": ["Water", "Colorless", "Colorless"],
+        "damage": 160
+      }
+    ],
+    "retreat_cost": 2
+  },
+  {
+    "name": "Latias ex",
+    "card_type": "Pokemon",
+    "stage": "Basic",
+    "evolves_from": null,
+    "element": "Psychic",
+    "weakness": "Darkness",
+    "resistance": "Fighting",
+    "hp": 210,
+    "prize_yield": 2,
+    "is_rule_box": true,
+    "ability": {
+      "name": "Skyliner",
+      "type": "passive",
+      "description": "Your Basic Pokémon in play have no Retreat Cost."
+    },
+    "attacks": [
+      {
+        "name": "Infinity Blade",
+        "cost": ["Psychic", "Psychic", "Colorless"],
+        "damage": 200
+      }
+    ],
+    "retreat_cost": 1
+  },
+  {
+    "name": "Bouffalant",
+    "card_type": "Pokemon",
+    "stage": "Basic",
+    "evolves_from": null,
+    "element": "Colorless",
+    "weakness": "Fighting",
+    "resistance": null,
+    "hp": 100,
+    "prize_yield": 1,
+    "is_rule_box": false,
+    "ability": {
+      "name": "Curly Wall",
+      "type": "passive",
+      "description": "If you have another Bouffalant in play, your Basic Colorless Pokémon take 60 less damage from attacks from your opponent's Pokémon."
+    },
+    "attacks": [
+      {
+        "name": "Boundless Headbutt",
+        "cost": ["Colorless", "Colorless", "Colorless"],
+        "damage": 130
+      }
+    ],
+    "retreat_cost": 2
+  },
+  {
+    "name": "Snorunt",
+    "card_type": "Pokemon",
+    "stage": "Basic",
+    "evolves_from": null,
+    "element": "Water",
+    "weakness": "Metal",
+    "resistance": null,
+    "hp": 60,
+    "prize_yield": 1,
+    "is_rule_box": false,
+    "attacks": [
+      {
+        "name": "Chilling Breath",
+        "cost": ["Water"],
+        "damage": 10
+      }
+    ],
+    "retreat_cost": 1
+  },
+  {
+    "name": "Froslass",
+    "card_type": "Pokemon",
+    "stage": "Stage 1",
+    "evolves_from": "Snorunt",
+    "element": "Water",
+    "weakness": "Metal",
+    "resistance": null,
+    "hp": 90,
+    "prize_yield": 1,
+    "is_rule_box": false,
+    "ability": {
+      "name": "Freezing Shroud",
+      "type": "passive",
+      "description": "During Pokémon Checkup, put 1 damage counter on each Pokémon in play that has an Ability (excluding Froslass)."
+    },
+    "attacks": [
+      {
+        "name": "Frost Smash",
+        "cost": ["Water", "Colorless"],
+        "damage": 60
+      }
+    ],
+    "retreat_cost": 1
+  },
+  {
+    "name": "Sparkling Crystal",
+    "card_type": "Trainer",
+    "trainer_type": "Tool",
+    "is_ace_spec": true,
+    "effect_description": "ACE SPEC: When the Tera Pokémon this card is attached to uses an attack, that attack costs 1 less Energy of any type."
+  },
+  {
+    "name": "Secret Box",
+    "card_type": "Trainer",
+    "trainer_type": "Item",
+    "is_ace_spec": true,
+    "effect_description": "ACE SPEC: You can use this card only if you discard 3 other cards from your hand. Search your deck for an Item card, a Tool card, a Supporter card, and a Stadium card, reveal them, and put them into your hand."
+  },
+  {
+    "name": "Bravery Charm",
+    "card_type": "Trainer",
+    "trainer_type": "Tool",
+    "effect_description": "The Basic Pokémon this card is attached to gets +50 HP."
   }
 ]
