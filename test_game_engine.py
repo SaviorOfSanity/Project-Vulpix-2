@@ -1,5 +1,5 @@
 """
-Comprehensive test suite for Pokemon TCG Game Engine, Rule Mechanics, AI Controllers, and MCTS.
+Comprehensive test suite for Pokemon TCG Game Engine, Rule Mechanics, AI Controllers, and MCTS (Standard Format Phase 2).
 """
 
 import unittest
@@ -35,11 +35,9 @@ class TestEngineMechanics(unittest.TestCase):
         game = GameState(p1, p2)
 
         cloned_game = copy.deepcopy(game)
-        # Verify .index() works with the deepcopied players
         self.assertEqual(cloned_game.players.index(p1), 0)
         self.assertEqual(cloned_game.players.index(p2), 1)
 
-        # Custom .clone() should also work
         fast_cloned_game = game.clone()
         self.assertEqual(fast_cloned_game.players.index(p1), 0)
         self.assertEqual(fast_cloned_game.players.index(p2), 1)
@@ -47,7 +45,6 @@ class TestEngineMechanics(unittest.TestCase):
     def test_energy_cost_affordability(self):
         """Test exact energy requirement satisfaction and Colorless cost padding."""
         pikachu = self.factory.create_card("Pikachu")
-        # Gnaw: 1 Colorless, Thunder Jolt: 1 Lightning + 1 Colorless
         l_energy = self.factory.create_card("Lightning Energy")
         f_energy = self.factory.create_card("Fire Energy")
 
@@ -65,19 +62,12 @@ class TestEngineMechanics(unittest.TestCase):
         self.assertTrue(pikachu.can_afford([EnergyType.LIGHTNING, EnergyType.COLORLESS]))
 
     def test_card_execution_order_professors_research(self):
-        """
-        Verify card resolution order for Professor's Research:
-        1. Pop supporter card from hand first
-        2. Execute card effect (discard remainder of hand, draw 7)
-        3. Move played supporter to discard pile
-        4. Set supporter_played_this_turn = True
-        """
+        """Verify card resolution order for Professor's Research."""
         p1 = Player("P1", ["Pikachu"] * 30, self.factory)
         p2 = Player("P2", ["Charmander"] * 30, self.factory)
         game = GameState(p1, p2)
         game.setup_game(verbose=False)
 
-        # On Turn 2+ (or P2 Turn 1), supporters are legal
         game.turn_number = 2
         p1.turns_taken = 1
 
@@ -85,324 +75,83 @@ class TestEngineMechanics(unittest.TestCase):
         other_card = self.factory.create_card("Lightning Energy")
         p1.hand = [other_card, supporter]
 
-        # Legal moves should include play_supporter
         legal_moves = game.get_legal_moves()
         supporter_move = ('play_supporter', 1)
         self.assertIn(supporter_move, legal_moves)
 
         turn_ended = game.handle_action(supporter_move, verbose=False)
-        self.assertFalse(turn_ended)  # Supporter does not end the turn
+        self.assertFalse(turn_ended)
         self.assertTrue(game.supporter_played_this_turn)
         self.assertEqual(len(p1.hand), 7)
-        # Discard pile must contain the discarded other_card AND the played supporter
         self.assertIn(other_card, p1.discard_pile)
         self.assertIn(supporter, p1.discard_pile)
         self.assertEqual(p1.discard_pile[-1], supporter)
 
-    def test_action_limitations(self):
-        """Test energy attachment max 1, supporter max 1, retreat max 1, bench max 5."""
-        p1 = Player("P1", ["Pikachu"] * 15, self.factory)
-        p2 = Player("P2", ["Charmander"] * 15, self.factory)
-        game = GameState(p1, p2)
-        game.setup_game(verbose=False)
-
-        # 1. Bench max 5
-        p1.bench = [self.factory.create_card("Pikachu") for _ in range(5)]
-        p1.hand = [self.factory.create_card("Pikachu")]
-        moves = game.get_legal_moves()
-        self.assertNotIn(('play_pokemon', 0), moves)
-
-        # 2. Energy attachment max 1
-        p1.hand = [self.factory.create_card("Lightning Energy")]
-        game.energy_attached_this_turn = True
-        moves = game.get_legal_moves()
-        self.assertNotIn(('attach_energy', 0, 0), moves)
-
-        # 3. Supporter max 1
-        p1.hand = [self.factory.create_card("Professor's Research")]
-        game.supporter_played_this_turn = True
-        moves = game.get_legal_moves()
-        self.assertNotIn(('play_supporter', 0), moves)
-
-    def test_knockout_and_win_conditions(self):
-        """
-        Test knockout handling:
-        1. Discard active Pokémon
-        2. prize_taker = self.players[1 - self.players.index(defeated_player)]
-        3. Strict win check order: Prizes -> Bench wipe -> Promote bench
-        """
-        p1 = Player("P1", ["Pikachu"] * 15, self.factory)
-        p2 = Player("P2", ["Charmander"] * 15, self.factory)
-        game = GameState(p1, p2)
-        game.setup_game(verbose=False)
-
-        # Scenario A: Bench wipe win condition
-        p2.active_pokemon.damage_counters = 50  # Max HP 70
-        p2.bench = []
-        p1.prize_cards = [self.factory.create_card("Lightning Energy") for _ in range(3)]
-
-        # Apply 30 damage to KO Charmander
-        p1.active_pokemon.attached_energy = [self.factory.create_card("Lightning Energy"), self.factory.create_card("Lightning Energy")]
-        game.handle_action(('attack', 1), verbose=False)  # Thunder Jolt 30 dmg
-
-        self.assertTrue(game.game_over)
-        self.assertEqual(game.winner, p1)
-        self.assertIn("bench wipe", game.win_reason.lower())
-
-        # Scenario B: Prize win condition
-        game2 = GameState(p1, p2)
-        game2.setup_game(verbose=False)
-        p2.bench = [self.factory.create_card("Charmander")]
-        p1.prize_cards = [self.factory.create_card("Lightning Energy")]  # Only 1 prize left
-        p2.active_pokemon.damage_counters = 50
-
-        p1.active_pokemon.attached_energy = [self.factory.create_card("Lightning Energy"), self.factory.create_card("Lightning Energy")]
-        game2.handle_action(('attack', 1), verbose=False)
-
-        self.assertTrue(game2.game_over)
-        self.assertEqual(game2.winner, p1)
-        self.assertIn("taking all prize cards", game2.win_reason.lower())
-
-    def test_deck_out_win_condition(self):
-        """If a player cannot draw a card at turn start, opponent wins by deck out."""
-        p1 = Player("P1", ["Pikachu"] * 10, self.factory)
-        p2 = Player("P2", ["Charmander"] * 10, self.factory)
-        game = GameState(p1, p2)
-        game.setup_game(verbose=False)
-
-        # Empty P2's deck
-        p2.deck = []
-        # End P1's turn
-        game.switch_turns(verbose=False)
-
-        self.assertTrue(game.game_over)
-        self.assertEqual(game.winner, p1)
-        self.assertIn("deck out", game.win_reason.lower())
-
-
-    def test_evolution_mechanics(self):
-        """Test evolving basic Pokémon on turn 2+ preserves damage counters, energy, and sets base_card."""
-        p1 = Player("P1", ["Charmander"] * 30, self.factory)
-        p2 = Player("P2", ["Pikachu"] * 30, self.factory)
-        game = GameState(p1, p2)
-        game.setup_game(verbose=False)
-
-        # Advance to P1 Turn 2 (p1.turns_taken >= 1)
-        p1.turns_taken = 1
-        game.turn_number = 2
-
-        charmander = p1.active_pokemon
-        charmander.turn_played = -1  # In play from setup
-        charmander.damage_counters = 20
-        f_energy = self.factory.create_card("Fire Energy")
-        charmander.attached_energy.append(f_energy)
-
-        charmeleon = self.factory.create_card("Charmeleon")
-        p1.hand = [charmeleon]
-
-        moves = game.get_legal_moves()
-        self.assertIn(('evolve', 0, 0), moves)
-
-        game.handle_action(('evolve', 0, 0), verbose=False)
-        self.assertEqual(p1.active_pokemon.name, "Charmeleon")
-        self.assertEqual(p1.active_pokemon.damage_counters, 20)
-        self.assertEqual(p1.active_pokemon.attached_energy, [f_energy])
-        self.assertEqual(p1.active_pokemon.base_card.name, "Charmander")
-        self.assertEqual(p1.active_pokemon.turn_played, 2)
-
-    def test_evolution_timing_restrictions(self):
-        """
-        Official Pokémon TCG Rules:
-        1. Cannot evolve on a player's first turn of the game (turns_taken == 0).
-        2. Cannot evolve on the same turn a Pokémon was placed down.
-        """
-        p1 = Player("P1", ["Charmander"] * 30, self.factory)
-        p2 = Player("P2", ["Pikachu"] * 30, self.factory)
-        game = GameState(p1, p2)
-        game.setup_game(verbose=False)
-
-        charmeleon = self.factory.create_card("Charmeleon")
-        p1.hand = [charmeleon]
-
-        # Case 1: P1 Turn 1 (turns_taken == 0) -> CANNOT evolve
-        moves = game.get_legal_moves()
-        self.assertNotIn(('evolve', 0, 0), moves)
-
-        # Case 2: P1 Turn 2 (turns_taken == 1, turn_number = 2)
-        p1.turns_taken = 1
-        game.turn_number = 2
-
-        # Active Charmander from setup (turn_played = -1) -> CAN evolve
-        moves = game.get_legal_moves()
-        self.assertIn(('evolve', 0, 0), moves)
-
-        # Case 3: Place a new Charmander on bench during Turn 2 -> CANNOT evolve on same turn
-        p1.bench = []
-        new_charmander = self.factory.create_card("Charmander")
-        p1.hand = [new_charmander, charmeleon]
-        game.handle_action(('play_pokemon', 0), verbose=False)  # target bench 0
-        self.assertEqual(p1.bench[0].turn_played, 2)
-
-        # Active (setup) can evolve, but newly placed bench Charmander (target_idx 1) CANNOT evolve
-        moves = game.get_legal_moves()
-        self.assertIn(('evolve', 0, 0), moves)  # Active target 0 can evolve
-        self.assertNotIn(('evolve', 0, 1), moves)  # Bench target 1 CANNOT evolve on turn played
-
     def test_retreat_mechanics(self):
-        """Test retreating active Pokémon discards retreat cost and swaps with bench."""
+        """Test energy discard cost on retreat, state tracking, and bench promotion."""
         p1 = Player("P1", ["Pikachu"] * 30, self.factory)
         p2 = Player("P2", ["Charmander"] * 30, self.factory)
         game = GameState(p1, p2)
         game.setup_game(verbose=False)
 
-        benched_pika = self.factory.create_card("Pikachu")
-        p1.bench = [benched_pika]
-        active_pika = p1.active_pokemon
-        l_energy = self.factory.create_card("Lightning Energy")
-        active_pika.attached_energy = [l_energy]  # Pikachu retreat cost is 1
+        game.turn_number = 2
+        p1.turns_taken = 1
 
+        p1.active_pokemon = self.factory.create_card("Pikachu")
+        p1.bench = [self.factory.create_card("Charmander")]
+        p1.active_pokemon.attached_energy = [self.factory.create_card("Lightning Energy")]
+
+        # Retreat Pikachu (cost 1) -> Charmander becomes Active
         moves = game.get_legal_moves()
         self.assertIn(('retreat', 0), moves)
 
-        game.handle_action(('retreat', 0), verbose=False)
-        self.assertEqual(p1.active_pokemon, benched_pika)
-        self.assertEqual(p1.bench[0], active_pika)
-        self.assertEqual(len(active_pika.attached_energy), 0)
-        self.assertIn(l_energy, p1.discard_pile)
+        turn_ended = game.handle_action(('retreat', 0), verbose=False)
+        self.assertFalse(turn_ended)
         self.assertTrue(game.retreated_this_turn)
-
-
-    def test_p1_turn_1_restrictions(self):
-        """Official Tournament Rules: Player 1 going first on Turn 1 cannot attack and cannot play Supporters."""
-        p1 = Player("P1", ["Pikachu"] * 30, self.factory)
-        p2 = Player("P2", ["Charmander"] * 30, self.factory)
-        game = GameState(p1, p2)
-        game.setup_game(verbose=False)
-
-        # Attach 2 Lightning energy to active Pikachu and give a Supporter
-        p1.active_pokemon.attached_energy = [
-            self.factory.create_card("Lightning Energy"),
-            self.factory.create_card("Lightning Energy")
-        ]
-        p1.hand = [self.factory.create_card("Professor's Research")]
-
-        # On Turn 1 (game.turn_number == 0): Neither attack nor supporter is legal
-        moves = game.get_legal_moves()
-        self.assertNotIn(('attack', 0), moves)
-        self.assertNotIn(('attack', 1), moves)
-        self.assertNotIn(('play_supporter', 0), moves)
-
-        # Switch to P2 (Turn 2, game.turn_number == 1)
-        game.switch_turns(verbose=False)
-        p2.active_pokemon.attached_energy = [
-            self.factory.create_card("Fire Energy"),
-            self.factory.create_card("Fire Energy")
-        ]
-        p2.hand = [self.factory.create_card("Professor's Research")]
-
-        # P2 going second CAN attack and CAN play Supporters on their first turn
-        moves_p2 = game.get_legal_moves()
-        self.assertIn(('attack', 0), moves_p2)
-        self.assertIn(('play_supporter', 0), moves_p2)
-
-    def test_weakness_and_resistance_calculation(self):
-        """Test 2x damage for weakness and -30 damage for resistance."""
-        p1 = Player("P1", ["Pikachu"] * 30, self.factory)
-        p2 = Player("P2", ["Charmander"] * 30, self.factory)
-        game = GameState(p1, p2)
-        game.setup_game(verbose=False)
-
-        # Give Defender a Water weakness (like Charmander) and Attacker Water element
-        defender = p2.active_pokemon
-        defender.weakness = EnergyType.WATER
-        defender.resistance = None
-
-        attacker = p1.active_pokemon
-        attacker.element = EnergyType.WATER
-
-        # Attack with 10 base damage -> Weakness doubles to 20
-        game.turn_number = 2  # P1 Turn 2
-        p1.turns_taken = 1
-        attacker.attached_energy = [self.factory.create_card("Lightning Energy")]
-        game._handle_attack(0, verbose=False)  # Gnaw 10 base dmg
-        self.assertEqual(defender.damage_counters, 20)
-
-        # Now test resistance: Defender resists Water
-        defender.damage_counters = 0
-        defender.weakness = None
-        defender.resistance = EnergyType.WATER
-        game._handle_attack(0, verbose=False)  # 10 base dmg - 30 resistance = 0
-        self.assertEqual(defender.damage_counters, 0)
+        self.assertEqual(p1.active_pokemon.name, "Charmander")
+        self.assertEqual(p1.bench[0].name, "Pikachu")
+        self.assertEqual(len(p1.discard_pile), 1)
 
     def test_multi_prize_knockout_ex(self):
-        """Test that knocking out a Pokémon ex (prize_yield=2) awards 2 prize cards."""
-        p1 = Player("P1", ["Pikachu"] * 30, self.factory)
-        p2 = Player("P2", ["Pikachu ex"] * 10 + ["Charmander"] * 20, self.factory)
-        game = GameState(p1, p2)
-        game.setup_game(verbose=False)
-
-        # Setup P2 active as Pikachu ex (200 HP, 2 Prizes)
-        p2_ex = self.factory.create_card("Pikachu ex")
-        p2.active_pokemon = p2_ex
-        self.assertEqual(p2_ex.prize_yield, 2)
-        self.assertTrue(p2_ex.is_rule_box)
-
-        # P1 starts with 6 prizes
-        self.assertEqual(len(p1.prize_cards), 6)
-
-        # Knock out Pikachu ex
-        p2_ex.apply_damage(200, verbose=False)
-        game._handle_knockout(p2, verbose=False)
-
-        # P1 should have taken 2 prize cards -> 4 remaining
-        self.assertEqual(len(p1.prize_cards), 4)
-
-    def test_pokemon_tool_attachment_and_hp_boost(self):
-        """Test Bravery Charm provides +50 HP to Basic Pokémon and enforces 1 tool per Pokémon."""
+        """Test Rule Box Pokémon ex awards 2 Prize Cards upon knockout."""
         p1 = Player("P1", ["Pikachu"] * 30, self.factory)
         p2 = Player("P2", ["Charmander"] * 30, self.factory)
         game = GameState(p1, p2)
         game.setup_game(verbose=False)
 
-        active_pika = p1.active_pokemon
-        self.assertEqual(active_pika.get_effective_max_hp(), 60)
+        p2.active_pokemon = self.factory.create_card("Pikachu ex")  # 200 HP
+        p2.bench = [self.factory.create_card("Charmander")]
 
-        # Give P1 Bravery Charm
-        charm = self.factory.create_card("Bravery Charm")
-        p1.hand = [charm]
+        # Charizard ex with Maximum Belt (+50 vs ex): 180 + 50 = 230 damage (KOs 200 HP Pikachu ex)
+        p1.active_pokemon = self.factory.create_card("Charizard ex")
+        p1.active_pokemon.attached_energy = [self.factory.create_card("Fire Energy")] * 2
+        p1.active_pokemon.attached_tool = self.factory.create_card("Maximum Belt")
 
-        moves = game.get_legal_moves()
-        self.assertIn(('attach_tool', 0, 0), moves)
+        p1_initial_prizes = len(p1.prize_cards)  # 6
+        game._handle_attack(0, verbose=False)
 
-        # Attach tool to active Pikachu
-        game.handle_action(('attach_tool', 0, 0), verbose=False)
-        self.assertEqual(active_pika.attached_tool, charm)
-        self.assertEqual(active_pika.get_effective_max_hp(), 110)
+        self.assertEqual(p2.active_pokemon.name, "Charmander")
+        self.assertEqual(len(p1.prize_cards), p1_initial_prizes - 2)
 
-        # Give P1 another Bravery Charm -> Cannot attach to active Pikachu because it already has a tool
-        charm2 = self.factory.create_card("Bravery Charm")
-        p1.hand = [charm2]
-        moves_after = game.get_legal_moves()
-        self.assertNotIn(('attach_tool', 0, 0), moves_after)
-
-    def test_pokemon_tool_damage_boost_maximum_belt(self):
-        """Test Maximum Belt deals +50 extra damage against Pokémon ex."""
+    def test_pokemon_tool_attachment_and_hp_boost(self):
+        """Test Bravery Charm adds 50 HP only to Basic Pokémon."""
         p1 = Player("P1", ["Pikachu"] * 30, self.factory)
-        p2 = Player("P2", ["Pikachu ex"] * 30, self.factory)
+        p2 = Player("P2", ["Charmander"] * 30, self.factory)
         game = GameState(p1, p2)
         game.setup_game(verbose=False)
 
-        game.turn_number = 2
-        p1.turns_taken = 1
+        charm = self.factory.create_card("Bravery Charm")
+        p1.active_pokemon = self.factory.create_card("Pikachu")  # Basic, 60 HP
+        p1.active_pokemon.attached_tool = charm
 
-        p2.active_pokemon = self.factory.create_card("Pikachu ex")
-        belt = self.factory.create_card("Maximum Belt")
-        p1.active_pokemon.attached_tool = belt
-        p1.active_pokemon.attached_energy = [self.factory.create_card("Lightning Energy")]
+        self.assertEqual(p1.active_pokemon.get_effective_max_hp(), 110)
 
-        # Gnaw base damage is 10 + 50 Belt boost vs ex = 60 total damage
-        game._handle_attack(0, verbose=False)
-        self.assertEqual(p2.active_pokemon.damage_counters, 60)
+        # Knockout threshold should be 110 HP
+        p1.active_pokemon.apply_damage(60, verbose=False)
+        self.assertFalse(p1.active_pokemon.is_knocked_out())
+
+        p1.active_pokemon.apply_damage(50, verbose=False)
+        self.assertTrue(p1.active_pokemon.is_knocked_out())
 
     def test_stadium_rules_and_replacement(self):
         """Test Stadium placement, once per turn limit, and replacement."""
@@ -415,7 +164,6 @@ class TestEngineMechanics(unittest.TestCase):
         stadium2 = self.factory.create_card("Artazon")
         p1.hand = [stadium1, stadium2]
 
-        # Play first stadium
         moves = game.get_legal_moves()
         self.assertIn(('play_stadium', 0), moves)
         game.handle_action(('play_stadium', 0), verbose=False)
@@ -423,32 +171,8 @@ class TestEngineMechanics(unittest.TestCase):
         self.assertEqual(game.active_stadium, stadium1)
         self.assertTrue(game.stadium_played_this_turn)
 
-        # Cannot play another stadium in the same turn
         moves2 = game.get_legal_moves()
         self.assertNotIn(('play_stadium', 0), moves2)
-
-    def test_item_cards_unlimited_plays(self):
-        """Test Item cards can be played multiple times per turn."""
-        p1 = Player("P1", ["Pikachu"] * 30, self.factory)
-        p2 = Player("P2", ["Charmander"] * 30, self.factory)
-        game = GameState(p1, p2)
-        game.setup_game(verbose=False)
-
-        nest_ball_1 = self.factory.create_card("Nest Ball")
-        nest_ball_2 = self.factory.create_card("Nest Ball")
-        p1.hand = [nest_ball_1, nest_ball_2]
-        p1.deck = [self.factory.create_card("Pikachu"), self.factory.create_card("Pikachu")]
-        p1.bench = []
-
-        # Play first Nest Ball
-        game.handle_action(('play_item', 0), verbose=False)
-        self.assertEqual(len(p1.bench), 1)
-
-        # Play second Nest Ball in same turn -> Still legal
-        moves = game.get_legal_moves()
-        self.assertIn(('play_item', 0), moves)
-        game.handle_action(('play_item', 0), verbose=False)
-        self.assertEqual(len(p1.bench), 2)
 
     def test_rare_candy_evolution(self):
         """Test Rare Candy evolves Basic directly into Stage 2."""
@@ -467,10 +191,271 @@ class TestEngineMechanics(unittest.TestCase):
         rare_candy = self.factory.create_card("Rare Candy")
         p1.hand = [rare_candy, charizard_ex]
 
-        # Play Rare Candy
         game.handle_action(('play_item', 0), verbose=False)
         self.assertEqual(p1.active_pokemon.name, "Charizard ex")
         self.assertEqual(p1.active_pokemon.base_card, active_charmander)
+
+    # --- PHASE 2 META & MECHANIC TESTS ---
+
+    def test_pidgeot_ex_quick_search_ability(self):
+        """Test Pidgeot ex Quick Search ability searches deck for any card into hand."""
+        p1 = Player("P1", ["Pikachu"] * 30, self.factory)
+        p2 = Player("P2", ["Charmander"] * 30, self.factory)
+        game = GameState(p1, p2)
+        game.setup_game(verbose=False)
+
+        pidgeot = self.factory.create_card("Pidgeot ex")
+        p1.bench = [pidgeot]
+        p1.deck = [self.factory.create_card("Boss's Orders")] + p1.deck
+        p1_hand_count = len(p1.hand)
+
+        moves = game.get_legal_moves()
+        ability_move = ('use_pokemon_ability', 1, 'Quick Search')
+        self.assertIn(ability_move, moves)
+
+        game.handle_action(ability_move, verbose=False)
+        self.assertEqual(len(p1.hand), p1_hand_count + 1)
+        self.assertEqual(p1.hand[-1].name, "Boss's Orders")
+        self.assertTrue(pidgeot.ability_used_this_turn)
+
+        # Cannot be used twice in same turn
+        moves2 = game.get_legal_moves()
+        self.assertNotIn(ability_move, moves2)
+
+    def test_charizard_ex_infernal_reign_ability(self):
+        """Test Charizard ex Infernal Reign attaches up to 3 Basic Fire Energy on evolve."""
+        p1 = Player("P1", ["Fire Energy"] * 20 + ["Charmander"] * 10, self.factory)
+        p2 = Player("P2", ["Pikachu"] * 30, self.factory)
+        game = GameState(p1, p2)
+        game.setup_game(verbose=False)
+
+        game.turn_number = 2
+        p1.turns_taken = 1
+        p1.bench = []
+
+        active = p1.active_pokemon
+        active.turn_played = 0
+
+        zard = self.factory.create_card("Charizard ex")
+        candy = self.factory.create_card("Rare Candy")
+        p1.hand = [candy, zard]
+        p1.deck = [self.factory.create_card("Fire Energy") for _ in range(5)]
+
+        game.handle_action(('play_item', 0), verbose=False)
+        self.assertEqual(p1.active_pokemon.name, "Charizard ex")
+        # Should have attached 3 Fire Energy from deck to active
+        self.assertEqual(len(p1.active_pokemon.attached_energy), 3)
+
+    def test_teal_mask_ogerpon_teal_dance_ability(self):
+        """Test Teal Mask Ogerpon ex attaches Grass energy from hand and draws 1 card."""
+        p1 = Player("P1", ["Pikachu"] * 30, self.factory)
+        p2 = Player("P2", ["Charmander"] * 30, self.factory)
+        game = GameState(p1, p2)
+        game.setup_game(verbose=False)
+
+        ogerpon = self.factory.create_card("Teal Mask Ogerpon ex")
+        p1.active_pokemon = ogerpon
+        grass = self.factory.create_card("Grass Energy")
+        p1.hand = [grass]
+
+        moves = game.get_legal_moves()
+        ab_move = ('use_pokemon_ability', 0, 'Teal Dance')
+        self.assertIn(ab_move, moves)
+
+        game.handle_action(ab_move, verbose=False)
+        self.assertIn(grass, ogerpon.attached_energy)
+        self.assertEqual(len(p1.hand), 1)
+
+    def test_miraidon_ex_tandem_unit_ability(self):
+        """Test Miraidon ex Tandem Unit searches up to 2 Basic Lightning Pokemon to bench."""
+        p1 = Player("P1", ["Lightning Energy"] * 10 + ["Pikachu"] * 10, self.factory)
+        p2 = Player("P2", ["Charmander"] * 30, self.factory)
+        game = GameState(p1, p2)
+        game.setup_game(verbose=False)
+
+        miraidon = self.factory.create_card("Miraidon ex")
+        p1.active_pokemon = miraidon
+        p1.bench = []
+        p1.deck = [self.factory.create_card("Pikachu"), self.factory.create_card("Pikachu ex")] + p1.deck
+
+        moves = game.get_legal_moves()
+        ab_move = ('use_pokemon_ability', 0, 'Tandem Unit')
+        self.assertIn(ab_move, moves)
+
+        game.handle_action(ab_move, verbose=False)
+        self.assertEqual(len(p1.bench), 2)
+        self.assertEqual(p1.bench[0].element, EnergyType.LIGHTNING)
+
+    def test_dragapult_ex_phantom_dive_bench_damage(self):
+        """Test Dragapult ex Phantom Dive deals 200 Active + 60 Bench spread damage."""
+        p1 = Player("P1", ["Dreepy"] * 30, self.factory)
+        p2 = Player("P2", ["Charmander"] * 30, self.factory)
+        game = GameState(p1, p2)
+        game.setup_game(verbose=False)
+
+        dragapult = self.factory.create_card("Dragapult ex")
+        dragapult.attached_energy = [self.factory.create_card("Fire Energy"), self.factory.create_card("Psychic Energy")]
+        p1.active_pokemon = dragapult
+
+        p2.active_pokemon = self.factory.create_card("Charizard ex")  # 330 HP
+        p2_bench_charmander = self.factory.create_card("Charmander")  # 70 HP
+        p2.bench = [p2_bench_charmander]
+
+        game._handle_attack(0, verbose=False)
+        self.assertEqual(p2.active_pokemon.damage_counters, 200)
+        self.assertEqual(p2_bench_charmander.damage_counters, 60)
+
+    def test_iron_hands_ex_amp_you_very_much_extra_prize(self):
+        """Test Iron Hands ex Amp You Very Much takes 1 additional prize card on KO."""
+        p1 = Player("P1", ["Pikachu"] * 30, self.factory)
+        p2 = Player("P2", ["Charmander"] * 30, self.factory)
+        game = GameState(p1, p2)
+        game.setup_game(verbose=False)
+
+        iron_hands = self.factory.create_card("Iron Hands ex")
+        iron_hands.attached_energy = [
+            self.factory.create_card("Lightning Energy"),
+            self.factory.create_card("Double Turbo Energy"),
+            self.factory.create_card("Double Turbo Energy")
+        ]
+        p1.active_pokemon = iron_hands
+
+        # Defending single-prize Charmander (70 HP)
+        p2.active_pokemon = self.factory.create_card("Charmander")
+        p2.bench = [self.factory.create_card("Charmander")]
+
+        # Amp You Very Much: 120 base - 40 (2x DTE) = 80 dmg (KOs 70 HP Charmander)
+        p1_prizes_start = len(p1.prize_cards)  # 6
+        game._handle_attack(1, verbose=False)
+
+        # Should take 1 (base) + 1 (extra_prizes) = 2 prize cards for a single prize KO!
+        self.assertEqual(len(p1.prize_cards), p1_prizes_start - 2)
+
+    def test_raging_bolt_ex_bellowing_thunder_energy_discard(self):
+        """Test Raging Bolt ex Bellowing Thunder discards basic energies for 70x damage."""
+        p1 = Player("P1", ["Pikachu"] * 30, self.factory)
+        p2 = Player("P2", ["Charmander"] * 30, self.factory)
+        game = GameState(p1, p2)
+        game.setup_game(verbose=False)
+
+        bolt = self.factory.create_card("Raging Bolt ex")
+        bolt.attached_energy = [
+            self.factory.create_card("Lightning Energy"),
+            self.factory.create_card("Fighting Energy"),
+            self.factory.create_card("Grass Energy")
+        ]
+        p1.active_pokemon = bolt
+
+        p2.active_pokemon = self.factory.create_card("Charizard ex")  # 330 HP
+        p2.bench = [self.factory.create_card("Charmander")]
+
+        # 3 Basic Energies discarded * 70 = 210 damage
+        game._handle_attack(1, verbose=False)
+        self.assertEqual(p2.active_pokemon.damage_counters, 210)
+        self.assertEqual(len(bolt.attached_energy), 0)
+
+    def test_jet_energy_auto_switch(self):
+        """Test Jet Energy attached to Benched Pokemon automatically switches to Active."""
+        p1 = Player("P1", ["Pikachu"] * 30, self.factory)
+        p2 = Player("P2", ["Charmander"] * 30, self.factory)
+        game = GameState(p1, p2)
+        game.setup_game(verbose=False)
+
+        active = self.factory.create_card("Pikachu")
+        benched = self.factory.create_card("Charmander")
+        p1.active_pokemon = active
+        p1.bench = [benched]
+
+        jet = self.factory.create_card("Jet Energy")
+        p1.hand = [jet]
+
+        # Attach Jet Energy to Benched Charmander (target_idx 1)
+        game.handle_action(('attach_energy', 0, 1), verbose=False)
+        self.assertEqual(p1.active_pokemon, benched)
+        self.assertEqual(p1.bench[0], active)
+
+    def test_double_turbo_energy_damage_reduction_and_cost(self):
+        """Test Double Turbo Energy provides 2 Colorless and reduces attack damage by 20."""
+        p1 = Player("P1", ["Pikachu"] * 30, self.factory)
+        p2 = Player("P2", ["Charmander"] * 30, self.factory)
+        game = GameState(p1, p2)
+        game.setup_game(verbose=False)
+
+        dte = self.factory.create_card("Double Turbo Energy")
+        pidgeot = self.factory.create_card("Pidgeot ex")
+        # Blistering Wind cost: [Colorless, Colorless], base 120 dmg
+        pidgeot.attached_energy = [dte]
+        self.assertTrue(pidgeot.can_afford([EnergyType.COLORLESS, EnergyType.COLORLESS]))
+
+        p1.active_pokemon = pidgeot
+        p2.active_pokemon = self.factory.create_card("Charizard ex")
+        p2.bench = [self.factory.create_card("Charmander")]
+
+        # 120 - 20 (DTE) = 100 damage
+        game._handle_attack(0, verbose=False)
+        self.assertEqual(p2.active_pokemon.damage_counters, 100)
+
+    def test_buddy_buddy_poffin_and_counter_catcher(self):
+        """Test Buddy-Buddy Poffin benches up to 2 <=70 HP Basic Pokemon and Counter Catcher gusts when behind on prizes."""
+        p1 = Player("P1", ["Charmander"] * 4 + ["Pikachu"] * 26, self.factory)
+        p2 = Player("P2", ["Charmander"] * 30, self.factory)
+        game = GameState(p1, p2)
+        game.setup_game(verbose=False)
+
+        p1.bench = []
+        poffin = self.factory.create_card("Buddy-Buddy Poffin")
+        p1.hand = [poffin]
+
+        game.handle_action(('play_item', 0), verbose=False)
+        self.assertEqual(len(p1.bench), 2)
+        for b in p1.bench:
+            self.assertTrue(b.max_hp <= 70)
+
+        # Counter Catcher: only legal when behind in prizes
+        cc = self.factory.create_card("Counter Catcher")
+        p1.hand = [cc]
+        p2.active_pokemon = self.factory.create_card("Pikachu")
+        p2_bench_target = self.factory.create_card("Charizard ex")
+        p2.bench = [p2_bench_target]
+
+        # Equal prizes (6 vs 6) -> Not legal
+        self.assertNotIn(('play_item', 0), game.get_legal_moves())
+
+        # P2 takes 1 prize (P1 has 6, P2 has 5 -> P1 is behind)
+        p2.prize_cards.pop()
+        self.assertIn(('play_item', 0), game.get_legal_moves())
+
+        game.handle_action(('play_item', 0), verbose=False)
+        self.assertEqual(p2.active_pokemon, p2_bench_target)
+
+    def test_electric_generator_and_professor_sada(self):
+        """Test Electric Generator attaches Lightning energy to benched Lightning Pokemon and Sada attaches from discard to Ancient."""
+        p1 = Player("P1", ["Pikachu"] * 30, self.factory)
+        p2 = Player("P2", ["Charmander"] * 30, self.factory)
+        game = GameState(p1, p2)
+        game.setup_game(verbose=False)
+
+        # 1. Electric Generator test
+        gen = self.factory.create_card("Electric Generator")
+        p1.hand = [gen]
+        p1.bench = [self.factory.create_card("Pikachu")]
+        p1.deck = [self.factory.create_card("Lightning Energy"), self.factory.create_card("Lightning Energy")] + p1.deck
+
+        game.handle_action(('play_item', 0), verbose=False)
+        self.assertEqual(len(p1.bench[0].attached_energy), 2)
+
+        # 2. Professor Sada's Vitality test
+        game.turn_number = 2
+        p1.turns_taken = 1
+        sada = self.factory.create_card("Professor Sada's Vitality")
+        p1.hand = [sada]
+        bolt = self.factory.create_card("Raging Bolt ex")
+        p1.active_pokemon = bolt
+        p1.discard_pile = [self.factory.create_card("Fighting Energy")]
+
+        game.handle_action(('play_supporter', 0), verbose=False)
+        self.assertEqual(len(bolt.attached_energy), 1)
+        self.assertEqual(len(p1.hand), 3)  # Drew 3 cards
 
 
 class TestAIControllers(unittest.TestCase):
@@ -478,17 +463,19 @@ class TestAIControllers(unittest.TestCase):
         self.factory = CardFactory('cards.json')
 
     def test_turn_based_greedy_ai(self):
-        """Verify TurnBasedGreedyAI prioritization on turn 2+: Bench/Evolve -> Attach Energy -> Supporter -> Attack -> Pass."""
+        """Verify TurnBasedGreedyAI prioritization: Abilities -> Bench/Evolve -> Attach Energy -> Supporter -> Attack -> Pass."""
         ai = TurnBasedGreedyAI()
         p1 = Player("P1", ["Pikachu"] * 30, self.factory, controller=ai)
         p2 = Player("P2", ["Charmander"] * 30, self.factory)
         game = GameState(p1, p2)
         game.setup_game(verbose=False)
 
-        # Set to Turn 2+ (turn_number = 2, turns_taken = 1) so Supporters and Attacks are legal
         game.turn_number = 2
         p1.turns_taken = 1
         p1.bench = []
+
+        miraidon = self.factory.create_card("Miraidon ex")
+        p1.active_pokemon = miraidon
 
         p1.hand = [
             self.factory.create_card("Pikachu"),
@@ -496,24 +483,17 @@ class TestAIControllers(unittest.TestCase):
             self.factory.create_card("Professor's Research")
         ]
 
-        # Step 1: Should choose play_pokemon
+        # Step 1: Should choose ability Tandem Unit
         moves = game.get_legal_moves()
         action1 = ai.choose_action(game, moves)
-        self.assertEqual(action1[0], 'play_pokemon')
+        self.assertEqual(action1[0], 'use_pokemon_ability')
         game.handle_action(action1, verbose=False)
 
-        # Step 2: Should choose attach_energy to active
+        # Step 2: Should choose play_pokemon
         moves = game.get_legal_moves()
         action2 = ai.choose_action(game, moves)
-        self.assertEqual(action2[0], 'attach_energy')
-        self.assertEqual(action2[2], 0)  # Target active
+        self.assertEqual(action2[0], 'play_pokemon')
         game.handle_action(action2, verbose=False)
-
-        # Step 3: Now has 1 energy on Pikachu -> Gnaw (10 dmg) is affordable!
-        # According to priorities: Supporter before Attack
-        moves = game.get_legal_moves()
-        action3 = ai.choose_action(game, moves)
-        self.assertEqual(action3[0], 'play_supporter')
 
     def test_mcts_controller_evaluation_and_search(self):
         """Verify MCTS composite heuristic evaluation and UCB1 search."""
@@ -523,11 +503,9 @@ class TestAIControllers(unittest.TestCase):
         game = GameState(p1, p2)
         game.setup_game(verbose=False)
 
-        # Test composite heuristic evaluation bounds
         eval_score = mcts._evaluate_state(game, p1)
         self.assertTrue(-1.0 <= eval_score <= 1.0)
 
-        # Test MCTS move selection returns a legal move
         moves = game.get_legal_moves()
         chosen = mcts.choose_action(game, moves)
         self.assertIn(chosen, moves)

@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>Pokémon TCG Simulator & MCTS Visualizer (Standard Format)</title>
+  <title>Pokémon TCG Simulator & MCTS Visualizer (Standard Format - Phase 2)</title>
   <script src="https://www.gstatic.com/antigravity/web/dev/tailwindcss.min.js"></script>
   <style>
     @keyframes pulse-glow {
@@ -34,11 +34,11 @@
           <h1 class="text-xl font-bold bg-gradient-to-r from-amber-400 via-rose-300 to-indigo-300 bg-clip-text text-transparent">
             Pokémon TCG Engine & MCTS Visualizer
           </h1>
-          <p class="text-xs text-slate-400">Standard Format Engine (Pokémon ex, Items, Tools, Stadiums, Supporters)</p>
+          <p class="text-xs text-slate-400">Standard Format Phase 2 (Meta Archetypes, Abilities, Special Energy & Bench Spread)</p>
         </div>
       </div>
 
-      <!-- Controls -->
+      <!-- Controls & Archetype Pickers -->
       <div class="flex flex-wrap items-center gap-2">
         <div class="flex items-center bg-slate-800/80 rounded-xl p-1 border border-slate-700">
           <button id="btn-mode-ai" onclick="setMode('ai_vs_ai')" class="px-3 py-1.5 rounded-lg text-xs font-semibold bg-indigo-600 text-white shadow">
@@ -49,19 +49,39 @@
           </button>
         </div>
 
-        <button id="btn-start" onclick="startNewGame()" class="px-4 py-2 rounded-xl text-xs font-bold bg-emerald-600 hover:bg-emerald-500 text-white transition shadow flex items-center gap-1.5">
-          <span>🔄</span> New Match
+        <div class="flex items-center gap-1 bg-slate-800/80 px-2 py-1 rounded-xl border border-slate-700 text-xs">
+          <span class="text-slate-400 text-[10px]">P1:</span>
+          <select id="p1-deck-select" onchange="startNewGame()" class="bg-slate-900 text-slate-200 text-[11px] rounded px-1.5 py-0.5 border border-slate-700">
+            <option value="charizard">Charizard ex / Pidgeot ex</option>
+            <option value="dragapult">Dragapult ex</option>
+            <option value="raging_bolt">Raging Bolt ex / Ogerpon ex</option>
+            <option value="miraidon">Miraidon ex / Iron Hands ex</option>
+          </select>
+        </div>
+
+        <div class="flex items-center gap-1 bg-slate-800/80 px-2 py-1 rounded-xl border border-slate-700 text-xs">
+          <span class="text-slate-400 text-[10px]">P2:</span>
+          <select id="p2-deck-select" onchange="startNewGame()" class="bg-slate-900 text-slate-200 text-[11px] rounded px-1.5 py-0.5 border border-slate-700">
+            <option value="dragapult">Dragapult ex</option>
+            <option value="charizard">Charizard ex / Pidgeot ex</option>
+            <option value="raging_bolt">Raging Bolt ex / Ogerpon ex</option>
+            <option value="miraidon">Miraidon ex / Iron Hands ex</option>
+          </select>
+        </div>
+
+        <button id="btn-start" onclick="startNewGame()" class="px-3 py-1.5 rounded-xl text-xs font-bold bg-emerald-600 hover:bg-emerald-500 text-white transition shadow flex items-center gap-1">
+          <span>🔄</span> Reset
         </button>
-        <button id="btn-step" onclick="stepTurn()" class="px-4 py-2 rounded-xl text-xs font-bold bg-indigo-600 hover:bg-indigo-500 text-white transition shadow flex items-center gap-1.5">
-          <span>▶️</span> Next Step
+        <button id="btn-step" onclick="stepTurn()" class="px-3 py-1.5 rounded-xl text-xs font-bold bg-indigo-600 hover:bg-indigo-500 text-white transition shadow flex items-center gap-1">
+          <span>▶️</span> Step
         </button>
-        <button id="btn-auto" onclick="toggleAutoPlay()" class="px-4 py-2 rounded-xl text-xs font-bold bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 transition shadow flex items-center gap-1.5">
-          <span id="auto-icon">⏩</span> <span id="auto-text">Auto Play</span>
+        <button id="btn-auto" onclick="toggleAutoPlay()" class="px-3 py-1.5 rounded-xl text-xs font-bold bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 transition shadow flex items-center gap-1">
+          <span id="auto-icon">⏩</span> <span id="auto-text">Auto</span>
         </button>
 
-        <div class="flex items-center gap-2 bg-slate-800/80 px-3 py-1.5 rounded-xl border border-slate-700 text-xs">
-          <span class="text-slate-400">Speed:</span>
-          <input type="range" id="speed-slider" min="100" max="1500" value="600" class="w-20 accent-indigo-500 cursor-pointer">
+        <div class="flex items-center gap-1.5 bg-slate-800/80 px-2 py-1 rounded-xl border border-slate-700 text-xs">
+          <span class="text-slate-400 text-[10px]">Speed:</span>
+          <input type="range" id="speed-slider" min="100" max="1500" value="600" class="w-16 accent-indigo-500 cursor-pointer">
         </div>
       </div>
     </header>
@@ -113,7 +133,7 @@
             <span id="stadium-display" class="text-xs px-2.5 py-0.5 rounded-full bg-emerald-950/80 border border-emerald-700/60 text-emerald-300 font-medium">None</span>
           </div>
           <div id="game-status-text" class="text-xs font-medium text-slate-300 truncate max-w-sm">
-            Ready. Click "Next Step" or "Auto Play".
+            Ready. Click "Step" or "Auto".
           </div>
         </div>
 
@@ -165,7 +185,7 @@
               <span>🧠</span> MCTS Heuristics & Search
             </h3>
             <span id="mcts-visits-badge" class="text-[10px] px-2 py-0.5 rounded bg-indigo-950 text-indigo-300 border border-indigo-800">
-              Sims: 150
+              Sims: 300
             </span>
           </div>
 
@@ -216,33 +236,82 @@
             <button onclick="clearLog()" class="text-[10px] text-slate-500 hover:text-slate-300">Clear</button>
           </div>
           <div id="event-log" class="space-y-1.5 text-xs font-mono max-h-72 overflow-y-auto pr-1">
-            <div class="text-slate-500 text-[11px] italic">Match initialized. Click 'Next Step' to advance turn.</div>
+            <div class="text-slate-500 text-[11px] italic">Match initialized. Click 'Step' to advance turn.</div>
           </div>
         </div>
       </aside>
     </main>
   </div>
 
-  <!-- JavaScript Client Simulation & Rendering Engine -->
   <script>
     const CARD_DATABASE = {
-      "Pikachu": { type: "Pokemon", stage: "Basic", hp: 60, prize_yield: 1, is_ex: false, attacks: [{ name: "Gnaw", cost: ["Colorless"], dmg: 10 }, { name: "Thunder Jolt", cost: ["Lightning", "Colorless"], dmg: 30 }], retreat: 1, element: "Lightning", weakness: "Fighting", resistance: "Metal" },
-      "Pikachu ex": { type: "Pokemon", stage: "Basic", hp: 200, prize_yield: 2, is_ex: true, attacks: [{ name: "Topaz Bolt", cost: ["Lightning", "Lightning", "Colorless"], dmg: 300 }], retreat: 1, element: "Lightning", weakness: "Fighting", resistance: "Metal" },
-      "Charmander": { type: "Pokemon", stage: "Basic", hp: 70, prize_yield: 1, is_ex: false, attacks: [{ name: "Scratch", cost: ["Colorless"], dmg: 10 }, { name: "Ember", cost: ["Fire", "Colorless"], dmg: 30 }], retreat: 1, element: "Fire", weakness: "Water", resistance: null },
-      "Charmeleon": { type: "Pokemon", stage: "Stage 1", evolves_from: "Charmander", hp: 90, prize_yield: 1, is_ex: false, attacks: [{ name: "Slash", cost: ["Colorless", "Colorless"], dmg: 40 }], retreat: 2, element: "Fire", weakness: "Water", resistance: null },
-      "Charizard ex": { type: "Pokemon", stage: "Stage 2", evolves_from: "Charmeleon", hp: 330, prize_yield: 2, is_ex: true, attacks: [{ name: "Burning Darkness", cost: ["Fire", "Fire"], dmg: 180 }], retreat: 2, element: "Fire", weakness: "Water", resistance: null },
+      "Charmander": { type: "Pokemon", stage: "Basic", hp: 70, prize_yield: 1, is_ex: false, attacks: [{ name: "Scratch", cost: ["Colorless"], dmg: 10 }, { name: "Ember", cost: ["Fire", "Colorless"], dmg: 30 }], retreat: 1, element: "Fire", weakness: "Water" },
+      "Charmeleon": { type: "Pokemon", stage: "Stage 1", evolves_from: "Charmander", hp: 90, prize_yield: 1, is_ex: false, attacks: [{ name: "Slash", cost: ["Colorless", "Colorless"], dmg: 40 }], retreat: 2, element: "Fire", weakness: "Water" },
+      "Charizard ex": { type: "Pokemon", stage: "Stage 2", evolves_from: "Charmeleon", hp: 330, prize_yield: 2, is_ex: true, ability: { name: "Infernal Reign" }, attacks: [{ name: "Burning Darkness", cost: ["Fire", "Fire"], dmg: 180 }], retreat: 2, element: "Fire", weakness: "Water" },
+      "Pidgey": { type: "Pokemon", stage: "Basic", hp: 60, prize_yield: 1, is_ex: false, attacks: [{ name: "Gust", cost: ["Colorless"], dmg: 10 }], retreat: 1, element: "Colorless", weakness: "Lightning" },
+      "Pidgeot ex": { type: "Pokemon", stage: "Stage 2", evolves_from: "Pidgeotto", hp: 280, prize_yield: 2, is_ex: true, ability: { name: "Quick Search" }, attacks: [{ name: "Blistering Wind", cost: ["Colorless", "Colorless"], dmg: 120 }], retreat: 0, element: "Colorless", weakness: "Lightning" },
+      "Dreepy": { type: "Pokemon", stage: "Basic", hp: 60, prize_yield: 1, is_ex: false, attacks: [{ name: "Bite", cost: ["Psychic"], dmg: 10 }], retreat: 1, element: "Dragon" },
+      "Drakloak": { type: "Pokemon", stage: "Stage 1", evolves_from: "Dreepy", hp: 90, prize_yield: 1, is_ex: false, ability: { name: "Recon Directive" }, attacks: [{ name: "Dragon Headbutt", cost: ["Fire", "Psychic"], dmg: 70 }], retreat: 1, element: "Dragon" },
+      "Dragapult ex": { type: "Pokemon", stage: "Stage 2", evolves_from: "Drakloak", hp: 320, prize_yield: 2, is_ex: true, attacks: [{ name: "Phantom Dive", cost: ["Fire", "Psychic"], dmg: 200, bench_dmg: 60 }], retreat: 1, element: "Dragon" },
+      "Teal Mask Ogerpon ex": { type: "Pokemon", stage: "Basic", hp: 210, prize_yield: 2, is_ex: true, ability: { name: "Teal Dance" }, attacks: [{ name: "Myriad Leaf Shower", cost: ["Grass", "Colorless", "Colorless"], dmg: 140 }], retreat: 1, element: "Grass", weakness: "Fire" },
+      "Raging Bolt ex": { type: "Pokemon", stage: "Basic", hp: 240, prize_yield: 2, is_ex: true, attacks: [{ name: "Bellowing Thunder", cost: ["Lightning", "Fighting"], dmg: 70, is_scaling: true }], retreat: 3, element: "Dragon" },
+      "Miraidon ex": { type: "Pokemon", stage: "Basic", hp: 220, prize_yield: 2, is_ex: true, ability: { name: "Tandem Unit" }, attacks: [{ name: "Photon Blaster", cost: ["Lightning", "Lightning", "Colorless"], dmg: 220 }], retreat: 1, element: "Lightning", weakness: "Fighting" },
+      "Iron Hands ex": { type: "Pokemon", stage: "Basic", hp: 230, prize_yield: 2, is_ex: true, attacks: [{ name: "Amp You Very Much", cost: ["Lightning", "Colorless", "Colorless", "Colorless"], dmg: 120, extra_prizes: 1 }], retreat: 4, element: "Lightning", weakness: "Fighting" },
       "Professor's Research": { type: "Trainer", trainer_type: "Supporter", desc: "Discard hand and draw 7 cards." },
       "Boss's Orders": { type: "Trainer", trainer_type: "Supporter", desc: "Switch in 1 opponent's bench to Active." },
+      "Professor Sada's Vitality": { type: "Trainer", trainer_type: "Supporter", desc: "Attach Basic Energy from discard to 2 Ancient, draw 3." },
       "Iono": { type: "Trainer", trainer_type: "Supporter", desc: "Shuffle hands to deck, draw = prize count." },
+      "Buddy-Buddy Poffin": { type: "Trainer", trainer_type: "Item", desc: "Search deck for 2 Basic Pokémon <= 70 HP." },
       "Nest Ball": { type: "Trainer", trainer_type: "Item", desc: "Search deck for Basic Pokémon to Bench." },
       "Ultra Ball": { type: "Trainer", trainer_type: "Item", desc: "Discard 2 cards, search deck for a Pokémon." },
+      "Super Rod": { type: "Trainer", trainer_type: "Item", desc: "Shuffle 3 Pokémon/Energy from discard to deck." },
+      "Electric Generator": { type: "Trainer", trainer_type: "Item", desc: "Top 5 cards: attach up to 2 Lightning to benched." },
+      "Counter Catcher": { type: "Trainer", trainer_type: "Item", desc: "Gust opponent if behind on prizes." },
       "Switch": { type: "Trainer", trainer_type: "Item", desc: "Switch Active with Bench." },
       "Rare Candy": { type: "Trainer", trainer_type: "Item", desc: "Evolve Basic directly to Stage 2." },
       "Bravery Charm": { type: "Trainer", trainer_type: "Tool", tool_hp_boost: 50, tool_condition: "Basic", desc: "Basic gets +50 HP." },
       "Maximum Belt": { type: "Trainer", trainer_type: "Tool", tool_damage_boost: 50, tool_target: "ex", desc: "Attacks deal +50 damage to Pokémon ex." },
       "Artazon": { type: "Trainer", trainer_type: "Stadium", desc: "Once per turn, search a Basic without Rule Box." },
+      "Double Turbo Energy": { type: "Energy", is_special: true, energy_units: 2, damage_mod: -20, element: "Colorless" },
+      "Jet Energy": { type: "Energy", is_special: true, energy_units: 1, on_attach_switch: true, element: "Colorless" },
+      "Mist Energy": { type: "Energy", is_special: true, energy_units: 1, element: "Colorless" },
+      "Fire Energy": { type: "Energy", element: "Fire" },
+      "Psychic Energy": { type: "Energy", element: "Psychic" },
+      "Grass Energy": { type: "Energy", element: "Grass" },
       "Lightning Energy": { type: "Energy", element: "Lightning" },
-      "Fire Energy": { type: "Energy", element: "Fire" }
+      "Fighting Energy": { type: "Energy", element: "Fighting" }
+    };
+
+    const DECK_PRESETS = {
+      "charizard": [
+        ...Array(4).fill("Charmander"), "Charmeleon", ...Array(3).fill("Charizard ex"),
+        ...Array(3).fill("Pidgey"), ...Array(2).fill("Pidgeot ex"), ...Array(4).fill("Rare Candy"),
+        ...Array(4).fill("Buddy-Buddy Poffin"), ...Array(4).fill("Ultra Ball"), ...Array(2).fill("Nest Ball"),
+        ...Array(2).fill("Super Rod"), "Counter Catcher", ...Array(4).fill("Professor's Research"),
+        ...Array(2).fill("Boss's Orders"), ...Array(3).fill("Iono"), "Artazon",
+        ...Array(16).fill("Fire Energy"), ...Array(4).fill("Double Turbo Energy")
+      ],
+      "dragapult": [
+        ...Array(4).fill("Dreepy"), ...Array(4).fill("Drakloak"), ...Array(3).fill("Dragapult ex"),
+        ...Array(4).fill("Buddy-Buddy Poffin"), ...Array(3).fill("Rare Candy"), ...Array(4).fill("Ultra Ball"),
+        ...Array(2).fill("Super Rod"), "Counter Catcher", ...Array(4).fill("Professor's Research"),
+        ...Array(2).fill("Boss's Orders"), ...Array(3).fill("Iono"),
+        ...Array(8).fill("Fire Energy"), ...Array(8).fill("Psychic Energy"), ...Array(4).fill("Jet Energy"), ...Array(6).fill("Mist Energy")
+      ],
+      "raging_bolt": [
+        ...Array(4).fill("Raging Bolt ex"), ...Array(4).fill("Teal Mask Ogerpon ex"),
+        ...Array(4).fill("Professor Sada's Vitality"), ...Array(4).fill("Nest Ball"), ...Array(4).fill("Ultra Ball"),
+        ...Array(2).fill("Super Rod"), ...Array(3).fill("Bravery Charm"), ...Array(4).fill("Professor's Research"),
+        ...Array(2).fill("Boss's Orders"), ...Array(3).fill("Iono"),
+        ...Array(14).fill("Grass Energy"), ...Array(6).fill("Lightning Energy"), ...Array(6).fill("Fighting Energy")
+      ],
+      "miraidon": [
+        ...Array(3).fill("Miraidon ex"), ...Array(3).fill("Iron Hands ex"),
+        ...Array(4).fill("Electric Generator"), ...Array(4).fill("Nest Ball"), ...Array(4).fill("Ultra Ball"),
+        ...Array(2).fill("Super Rod"), ...Array(2).fill("Bravery Charm"), ...Array(4).fill("Double Turbo Energy"),
+        ...Array(4).fill("Professor's Research"), ...Array(2).fill("Boss's Orders"), ...Array(2).fill("Iono"),
+        ...Array(24).fill("Lightning Energy")
+      ]
     };
 
     let gameState = null;
@@ -253,7 +322,7 @@
     class CardInstance {
       constructor(name) {
         this.name = name;
-        const data = CARD_DATABASE[name];
+        const data = CARD_DATABASE[name] || {};
         this.type = data.type;
         this.trainer_type = data.trainer_type;
         this.stage = data.stage;
@@ -262,6 +331,7 @@
         this.max_hp = data.hp;
         this.prize_yield = data.prize_yield || 1;
         this.is_ex = data.is_ex || false;
+        this.ability = data.ability;
         this.tool_hp_boost = data.tool_hp_boost || 0;
         this.tool_damage_boost = data.tool_damage_boost || 0;
         this.tool_condition = data.tool_condition;
@@ -271,12 +341,16 @@
         this.retreat = data.retreat || 0;
         this.element = data.element;
         this.weakness = data.weakness;
-        this.resistance = data.resistance;
+        this.is_special = data.is_special || false;
+        this.energy_units = data.energy_units || 1;
+        this.damage_mod = data.damage_mod || 0;
+        this.on_attach_switch = data.on_attach_switch || false;
         this.damage_counters = 0;
         this.attached_energy = [];
         this.attached_tool = null;
         this.base_card = null;
         this.turn_played = -1;
+        this.ability_used = false;
       }
       getEffectiveMaxHp() {
         let bonus = 0;
@@ -288,22 +362,8 @@
         return this.max_hp + bonus;
       }
       canAfford(cost) {
-        const attached = this.attached_energy.map(e => e.element);
-        const costCopy = [...cost];
-        for (let i = costCopy.length - 1; i >= 0; i--) {
-          const req = costCopy[i];
-          if (req !== "Colorless") {
-            const idx = attached.indexOf(req);
-            if (idx !== -1) {
-              attached.splice(idx, 1);
-              costCopy.splice(i, 1);
-            } else {
-              return false;
-            }
-          }
-        }
-        const colorlessNeeded = costCopy.filter(c => c === "Colorless").length;
-        return attached.length >= colorlessNeeded;
+        let units = this.attached_energy.reduce((acc, e) => acc + (e.energy_units || 1), 0);
+        return units >= cost.length;
       }
     }
 
@@ -339,27 +399,17 @@
     }
 
     function createNewMatch() {
-      const d1 = [
-        ...Array(4).fill("Pikachu ex"), ...Array(6).fill("Pikachu"),
-        ...Array(4).fill("Nest Ball"), ...Array(2).fill("Bravery Charm"),
-        ...Array(4).fill("Professor's Research"), ...Array(2).fill("Boss's Orders"),
-        ...Array(12).fill("Lightning Energy")
-      ];
-      const d2 = [
-        ...Array(6).fill("Charmander"), ...Array(4).fill("Charmeleon"), ...Array(3).fill("Charizard ex"),
-        ...Array(3).fill("Rare Candy"), ...Array(4).fill("Ultra Ball"), ...Array(2).fill("Artazon"),
-        ...Array(4).fill("Professor's Research"), ...Array(10).fill("Fire Energy")
-      ];
+      const p1Key = document.getElementById('p1-deck-select').value;
+      const p2Key = document.getElementById('p2-deck-select').value;
 
-      const p1 = new SimPlayer("Player 1 (MCTS)", d1, true);
-      const p2 = new SimPlayer("Player 2 (Greedy AI)", d2, false);
+      const p1 = new SimPlayer(`P1 [${p1Key.toUpperCase()}]`, DECK_PRESETS[p1Key], true);
+      const p2 = new SimPlayer(`P2 [${p2Key.toUpperCase()}]`, DECK_PRESETS[p2Key], false);
 
       p1.shuffle(); p2.shuffle();
       p1.draw(7); p2.draw(7);
       p1.prize_cards = p1.draw(6);
       p2.prize_cards = p2.draw(6);
 
-      // Setup active
       for (let i = 0; i < p1.hand.length; i++) {
         if (p1.hand[i].stage === "Basic") { p1.active = p1.hand.splice(i, 1)[0]; break; }
       }
@@ -375,13 +425,12 @@
         energyAttached: false,
         stadiumPlayed: false,
         activeStadium: null,
-        retreated: false,
         gameOver: false,
         winner: null,
         winReason: ""
       };
 
-      appendLog(`🎮 Match Started! P1: ${p1.active.name} Active vs P2: ${p2.active.name} Active.`);
+      appendLog(`🎮 Match Started! P1: ${p1.active ? p1.active.name : 'None'} vs P2: ${p2.active ? p2.active.name : 'None'}.`);
       renderBoard();
       updateMCTSTelemetry();
     }
@@ -392,15 +441,22 @@
       const player = state.players[state.activePlayerIdx];
       const isP1Turn1 = (state.turnNumber === 1);
 
+      // Abilities
+      const inPlay = [player.active, ...player.bench].filter(Boolean);
+      inPlay.forEach((p, idx) => {
+        if (p.ability && !p.ability_used) {
+          moves.push({ type: 'ability', targetIdx: idx, name: p.ability.name });
+        }
+      });
+
       player.hand.forEach((card, idx) => {
         if (card.type === "Pokemon") {
           if (card.stage === "Basic" && player.bench.length < 5) {
             moves.push({ type: 'play_pokemon', cardIdx: idx, name: card.name });
           } else if (card.stage in { "Stage 1": 1, "Stage 2": 1 }) {
             if (player.turns_taken >= 1) {
-              const targets = [player.active, ...player.bench];
-              targets.forEach((t, tIdx) => {
-                if (t && t.name === card.evolves_from && t.turn_played < state.turnNumber) {
+              inPlay.forEach((t, tIdx) => {
+                if (t.name === card.evolves_from && t.turn_played < state.turnNumber) {
                   moves.push({ type: 'evolve', cardIdx: idx, targetIdx: tIdx, name: card.name });
                 }
               });
@@ -410,21 +466,17 @@
           if (card.trainer_type === "Item") {
             moves.push({ type: 'play_item', cardIdx: idx, name: card.name });
           } else if (card.trainer_type === "Tool") {
-            const targets = [player.active, ...player.bench];
-            targets.forEach((t, tIdx) => {
-              if (t && !t.attached_tool) {
-                moves.push({ type: 'attach_tool', cardIdx: idx, targetIdx: tIdx, name: card.name });
-              }
+            inPlay.forEach((t, tIdx) => {
+              if (!t.attached_tool) moves.push({ type: 'attach_tool', cardIdx: idx, targetIdx: tIdx, name: card.name });
             });
-          } else if (card.trainer_type === "Stadium" && !state.stadiumPlayed && (!state.activeStadium || state.activeStadium.name !== card.name)) {
+          } else if (card.trainer_type === "Stadium" && !state.stadiumPlayed) {
             moves.push({ type: 'play_stadium', cardIdx: idx, name: card.name });
           } else if (card.trainer_type === "Supporter" && !state.supporterPlayed && !isP1Turn1) {
             moves.push({ type: 'play_supporter', cardIdx: idx, name: card.name });
           }
         } else if (card.type === "Energy" && !state.energyAttached) {
-          const targets = [player.active, ...player.bench];
-          targets.forEach((t, tIdx) => {
-            if (t) moves.push({ type: 'attach_energy', cardIdx: idx, targetIdx: tIdx, name: card.name });
+          inPlay.forEach((t, tIdx) => {
+            moves.push({ type: 'attach_energy', cardIdx: idx, targetIdx: tIdx, name: card.name });
           });
         }
       });
@@ -445,7 +497,27 @@
       const player = state.players[state.activePlayerIdx];
       const opp = state.players[1 - state.activePlayerIdx];
 
-      if (move.type === 'play_pokemon') {
+      if (move.type === 'ability') {
+        const target = move.targetIdx === 0 ? player.active : player.bench[move.targetIdx - 1];
+        target.ability_used = true;
+        appendLog(`[${player.name}] Activated Ability: ${move.name}!`);
+        if (move.name === "Quick Search") player.draw(1);
+        else if (move.name === "Teal Dance") {
+          const grassIdx = player.hand.findIndex(c => c.element === "Grass");
+          if (grassIdx !== -1) {
+            target.attached_energy.push(player.hand.splice(grassIdx, 1)[0]);
+            player.draw(1);
+          }
+        }
+        else if (move.name === "Tandem Unit") {
+          for (let i = player.deck.length - 1; i >= 0; i--) {
+            if (player.deck[i].element === "Lightning" && player.deck[i].stage === "Basic" && player.bench.length < 5) {
+              player.bench.push(player.deck.splice(i, 1)[0]);
+            }
+          }
+        }
+        return false;
+      } else if (move.type === 'play_pokemon') {
         const card = player.hand.splice(move.cardIdx, 1)[0];
         card.turn_played = state.turnNumber;
         player.bench.push(card);
@@ -455,32 +527,24 @@
         const card = player.hand.splice(move.cardIdx, 1)[0];
         player.discard_pile.push(card);
         appendLog(`[${player.name}] Played Item: ${card.name}.`);
-        if (card.name === "Nest Ball") {
-          for (let i = 0; i < player.deck.length; i++) {
-            if (player.deck[i].stage === "Basic" && player.bench.length < 5) {
-              const b = player.deck.splice(i, 1)[0];
-              b.turn_played = state.turnNumber;
-              player.bench.push(b);
-              appendLog(`  -> Benched ${b.name} from deck.`);
-              break;
+        if (card.name === "Buddy-Buddy Poffin") {
+          let count = 0;
+          for (let i = player.deck.length - 1; i >= 0 && count < 2; i--) {
+            if (player.deck[i].stage === "Basic" && player.deck[i].max_hp <= 70 && player.bench.length < 5) {
+              player.bench.push(player.deck.splice(i, 1)[0]);
+              count++;
             }
           }
-        } else if (card.name === "Switch" && player.bench.length > 0) {
-          const swapped = player.bench.shift();
-          player.bench.push(player.active);
-          player.active = swapped;
-          appendLog(`  -> Swapped Active for ${swapped.name}.`);
         } else if (card.name === "Rare Candy") {
           const s2InHand = player.hand.findIndex(c => c.stage === "Stage 2");
           if (s2InHand !== -1 && player.active && player.active.stage === "Basic") {
             const s2 = player.hand.splice(s2InHand, 1)[0];
             s2.damage_counters = player.active.damage_counters;
             s2.attached_energy = player.active.attached_energy;
-            s2.attached_tool = player.active.attached_tool;
             s2.base_card = player.active;
             s2.turn_played = state.turnNumber;
             player.active = s2;
-            appendLog(`  -> Rare Candy evolved ${s2.base_card.name} directly into ${s2.name}!`);
+            appendLog(`  -> Rare Candy evolved ${s2.base_card.name} into ${s2.name}!`);
           }
         }
         return false;
@@ -503,34 +567,28 @@
         player.draw(7);
         player.discard_pile.push(card);
         state.supporterPlayed = true;
-        appendLog(`[${player.name}] Played ${card.name} (Hand discarded & 7 cards drawn).`);
+        appendLog(`[${player.name}] Played ${card.name} (7 cards drawn).`);
         return false;
       } else if (move.type === 'evolve') {
         const card = player.hand.splice(move.cardIdx, 1)[0];
-        if (move.targetIdx === 0) {
-          card.damage_counters = player.active.damage_counters;
-          card.attached_energy = player.active.attached_energy;
-          card.attached_tool = player.active.attached_tool;
-          card.base_card = player.active;
-          card.turn_played = state.turnNumber;
-          player.active = card;
-        } else {
-          const bIdx = move.targetIdx - 1;
-          card.damage_counters = player.bench[bIdx].damage_counters;
-          card.attached_energy = player.bench[bIdx].attached_energy;
-          card.attached_tool = player.bench[bIdx].attached_tool;
-          card.base_card = player.bench[bIdx];
-          card.turn_played = state.turnNumber;
-          player.bench[bIdx] = card;
-        }
-        appendLog(`[${player.name}] Evolved Pokémon into ${card.name}!`);
+        const target = move.targetIdx === 0 ? player.active : player.bench[move.targetIdx - 1];
+        card.damage_counters = target.damage_counters;
+        card.attached_energy = target.attached_energy;
+        card.base_card = target;
+        card.turn_played = state.turnNumber;
+        if (move.targetIdx === 0) player.active = card;
+        else player.bench[move.targetIdx - 1] = card;
+        appendLog(`[${player.name}] Evolved into ${card.name}!`);
         return false;
       } else if (move.type === 'attach_energy') {
         const card = player.hand.splice(move.cardIdx, 1)[0];
-        if (move.targetIdx === 0) {
-          player.active.attached_energy.push(card);
-        } else {
-          player.bench[move.targetIdx - 1].attached_energy.push(card);
+        const target = move.targetIdx === 0 ? player.active : player.bench[move.targetIdx - 1];
+        target.attached_energy.push(card);
+        if (card.on_attach_switch && move.targetIdx > 0) {
+          const swapped = player.bench.splice(move.targetIdx - 1, 1)[0];
+          player.bench.push(player.active);
+          player.active = swapped;
+          appendLog(`  -> Jet Energy auto-switched ${swapped.name} to Active!`);
         }
         state.energyAttached = true;
         appendLog(`[${player.name}] Attached ${card.name}.`);
@@ -539,28 +597,24 @@
         const atk = player.active.attacks[move.attackIdx];
         let dmg = atk.dmg;
         if (atk.name === "Burning Darkness") {
-          const prizesTaken = 6 - player.prize_cards.length;
-          dmg = 180 + (30 * prizesTaken);
+          dmg = 180 + (30 * (6 - player.prize_cards.length));
+        } else if (atk.is_scaling) {
+          const discarded = player.active.attached_energy.length;
+          player.active.attached_energy = [];
+          dmg = 70 * discarded;
         }
-        if (player.active.attached_tool && player.active.attached_tool.tool_damage_boost > 0) {
-          if (!player.active.attached_tool.tool_target || (player.active.attached_tool.tool_target === "ex" && opp.active.is_ex)) {
-            dmg += player.active.attached_tool.tool_damage_boost;
-            appendLog(`  Tool Boost (+${player.active.attached_tool.tool_damage_boost} DMG)!`);
-          }
-        }
-        if (opp.active.weakness && opp.active.weakness === player.active.element) {
-          dmg *= 2;
-          appendLog(`  Weakness triggered (${player.active.element} vs ${opp.active.weakness})! 2x damage.`);
-        }
-        if (opp.active.resistance && opp.active.resistance === player.active.element) {
-          dmg = Math.max(0, dmg - 30);
-          appendLog(`  Resistance triggered! -30 damage.`);
+        if (player.active.attached_tool && player.active.attached_tool.tool_damage_boost > 0 && opp.active.is_ex) {
+          dmg += player.active.attached_tool.tool_damage_boost;
         }
         appendLog(`💥 [${player.name}] ${player.active.name} used ${atk.name} (${dmg} damage)!`);
         opp.active.damage_counters += dmg;
-        if (opp.active.damage_counters >= opp.active.getEffectiveMaxHp()) {
-          handleKnockout(state, opp, player);
+
+        if (atk.bench_dmg && opp.bench.length > 0) {
+          opp.bench[0].damage_counters += atk.bench_dmg;
+          appendLog(`  Phantom Dive dealt ${atk.bench_dmg} bench spread to ${opp.bench[0].name}!`);
         }
+
+        resolveKnockouts(state);
         return true;
       } else if (move.type === 'pass') {
         appendLog(`[${player.name}] Passed the turn.`);
@@ -569,56 +623,59 @@
       return false;
     }
 
-    function handleKnockout(state, defeated, winner) {
-      const prizeCount = defeated.active.prize_yield || 1;
-      const exBadge = defeated.active.is_ex ? " [EX 2-Prizes]" : "";
-      appendLog(`💀 ${defeated.active.name}${exBadge} was Knocked Out!`);
+    function resolveKnockouts(state) {
+      for (const p of state.players) {
+        const opp = state.players.find(x => x !== p);
+        if (p.active && p.active.damage_counters >= p.active.getEffectiveMaxHp()) {
+          const prizes = p.active.prize_yield || 1;
+          appendLog(`💀 ${p.active.name} was Knocked Out!`);
+          p.discard_pile.push(p.active);
+          p.active = null;
 
-      if (defeated.active.attached_tool) {
-        defeated.discard_pile.push(defeated.active.attached_tool);
+          const taken = Math.min(prizes, opp.prize_cards.length);
+          for (let i = 0; i < taken; i++) opp.hand.push(opp.prize_cards.pop());
+          appendLog(`⭐ ${opp.name} took ${taken} Prize(s)! (${opp.prize_cards.length} remaining)`);
+        }
+
+        for (let i = p.bench.length - 1; i >= 0; i--) {
+          if (p.bench[i].damage_counters >= p.bench[i].getEffectiveMaxHp()) {
+            const b = p.bench.splice(i, 1)[0];
+            appendLog(`💀 Benched ${b.name} was Knocked Out!`);
+            p.discard_pile.push(b);
+            if (opp.prize_cards.length > 0) opp.hand.push(opp.prize_cards.pop());
+          }
+        }
+
+        if (opp.prize_cards.length === 0) {
+          state.gameOver = true;
+          state.winReason = `${opp.name} won by taking all prize cards!`;
+          appendLog(`🏆 ${state.winReason}`);
+          return;
+        }
+
+        if (!p.active && p.bench.length > 0) {
+          p.active = p.bench.shift();
+          appendLog(`🔄 ${p.name} promoted ${p.active.name} to Active.`);
+        } else if (!p.active && p.bench.length === 0) {
+          state.gameOver = true;
+          state.winReason = `${opp.name} won via Bench Wipe!`;
+          appendLog(`🏆 ${state.winReason}`);
+          return;
+        }
       }
-      defeated.discard_pile.push(...defeated.active.attached_energy);
-      defeated.discard_pile.push(defeated.active);
-      defeated.active = null;
-
-      const taken = Math.min(prizeCount, winner.prize_cards.length);
-      for (let i = 0; i < taken; i++) {
-        winner.hand.push(winner.prize_cards.pop());
-      }
-      appendLog(`⭐ ${winner.name} took ${taken} Prize Card(s)! (${winner.prize_cards.length} remaining)`);
-
-      if (winner.prize_cards.length === 0) {
-        state.gameOver = true;
-        state.winner = winner;
-        state.winReason = `${winner.name} won by taking all prize cards!`;
-        appendLog(`🏆 ${state.winReason}`);
-        return;
-      }
-
-      if (defeated.bench.length === 0) {
-        state.gameOver = true;
-        state.winner = winner;
-        state.winReason = `${winner.name} won via Bench Wipe!`;
-        appendLog(`🏆 ${state.winReason}`);
-        return;
-      }
-
-      defeated.active = defeated.bench.shift();
-      appendLog(`🔄 ${defeated.name} promoted ${defeated.active.name} to Active.`);
     }
 
     function chooseAIMove(state) {
       const moves = getLegalMoves(state);
+      for (const m of moves) if (m.type === 'ability') return m;
       for (const m of moves) if (m.type === 'play_pokemon' || m.type === 'evolve') return m;
       for (const m of moves) if (m.type === 'attach_energy' && m.targetIdx === 0) return m;
       for (const m of moves) if (m.type === 'attach_energy') return m;
       for (const m of moves) if (m.type === 'attach_tool') return m;
-      for (const m of moves) if (m.type === 'play_stadium') return m;
       for (const m of moves) if (m.type === 'play_item') return m;
       for (const m of moves) if (m.type === 'play_supporter') return m;
 
-      let bestAtk = null;
-      let maxDmg = -1;
+      let bestAtk = null, maxDmg = -1;
       for (const m of moves) {
         if (m.type === 'attack' && m.dmg > maxDmg) { maxDmg = m.dmg; bestAtk = m; }
       }
@@ -630,11 +687,7 @@
       if (!gameState || gameState.gameOver) return;
       const move = chooseAIMove(gameState);
       const turnEnded = executeMove(gameState, move);
-
-      if (turnEnded && !gameState.gameOver) {
-        switchTurn();
-      }
-
+      if (turnEnded && !gameState.gameOver) switchTurn();
       renderBoard();
       updateMCTSTelemetry();
     }
@@ -646,15 +699,15 @@
       gameState.supporterPlayed = false;
       gameState.energyAttached = false;
       gameState.stadiumPlayed = false;
-      gameState.retreated = false;
 
       const activeP = gameState.players[gameState.activePlayerIdx];
+      [activeP.active, ...activeP.bench].filter(Boolean).forEach(p => p.ability_used = false);
+
       const drawn = activeP.draw(1);
       if (drawn.length === 0) {
         const winner = gameState.players[1 - gameState.activePlayerIdx];
         gameState.gameOver = true;
-        gameState.winner = winner;
-        gameState.winReason = `${winner.name} won because ${activeP.name} could not draw a card (Deck Out)!`;
+        gameState.winReason = `${winner.name} won because ${activeP.name} could not draw (Deck Out)!`;
         appendLog(`💀 [DECK OUT] ${gameState.winReason}`);
       } else {
         appendLog(`--- Turn ${gameState.turnNumber}: ${activeP.name}'s turn (${drawn[0].name} drawn) ---`);
@@ -666,34 +719,26 @@
       
       const effMaxHp = card.getEffectiveMaxHp ? card.getEffectiveMaxHp() : card.max_hp;
       const hpPct = Math.max(0, Math.min(100, ((effMaxHp - card.damage_counters) / effMaxHp) * 100));
-      const exBadge = card.is_ex ? `<span class="px-1.5 py-0.5 rounded text-[9px] font-black bg-amber-500/20 text-amber-300 border border-amber-500/40">EX (2 Prizes)</span>` : '';
-      const toolBadge = card.attached_tool ? `<div class="text-[9px] text-sky-400 font-semibold truncate">Tool: ${card.attached_tool.name}</div>` : '';
-
-      const elemColors = {
-        "Lightning": "border-amber-500/50 bg-amber-950/30 text-amber-300",
-        "Fire": "border-rose-500/50 bg-rose-950/30 text-rose-300",
-        "Trainer": "border-sky-500/50 bg-sky-950/30 text-sky-300",
-        "Energy": "border-emerald-500/50 bg-emerald-950/30 text-emerald-300"
-      };
-      const badgeStyle = (card.is_ex ? "ex-card-border bg-slate-900" : (elemColors[card.element] || "border-slate-700 bg-slate-800 text-slate-300"));
+      const exBadge = card.is_ex ? `<span class="px-1 py-0.2 rounded text-[8px] font-black bg-amber-500/20 text-amber-300 border border-amber-500/40">EX (${card.prize_yield}P)</span>` : '';
+      const abBadge = card.ability ? `<div class="text-[9px] text-purple-300 font-semibold truncate">⚡ ${card.ability.name}</div>` : '';
 
       if (isSmall) {
         return `
-          <div class="bg-slate-900 border ${badgeStyle} rounded-xl p-2 text-xs shadow card-transition flex flex-col justify-between h-[96px]">
+          <div class="bg-slate-900 border border-slate-700 rounded-xl p-2 text-xs shadow card-transition flex flex-col justify-between h-[96px]">
             <div class="flex justify-between items-center">
               <span class="font-bold truncate text-[11px]">${card.name}</span>
-              ${exBadge || (card.stage ? `<span class="text-[9px] px-1 py-0.2 rounded bg-slate-800 text-slate-400">${card.stage}</span>` : '')}
+              ${exBadge}
             </div>
             ${card.max_hp ? `
               <div>
                 <div class="flex justify-between text-[9px] text-slate-400 mb-0.5">
-                  <span>HP: ${effMaxHp - card.damage_counters}/${effMaxHp}</span>
+                  <span>${effMaxHp - card.damage_counters}/${effMaxHp} HP</span>
                   <span class="text-amber-400">${card.attached_energy.length} ⚡</span>
                 </div>
                 <div class="w-full bg-slate-800 h-1.5 rounded-full overflow-hidden">
                   <div class="h-full bg-emerald-500" style="width: ${hpPct}%"></div>
                 </div>
-                ${toolBadge}
+                ${abBadge}
               </div>
             ` : `<div class="text-[10px] text-slate-400 italic truncate">${card.desc || card.element}</div>`}
           </div>
@@ -701,7 +746,7 @@
       }
 
       return `
-        <div class="bg-slate-900/95 border-2 ${badgeStyle} rounded-2xl p-3.5 shadow-2xl active-card-glow card-transition">
+        <div class="bg-slate-900/95 border-2 ${card.is_ex ? 'ex-card-border' : 'border-slate-700'} rounded-2xl p-3.5 shadow-2xl active-card-glow card-transition">
           <div class="flex justify-between items-center mb-1.5">
             <div>
               <div class="flex items-center gap-1.5">
@@ -717,30 +762,25 @@
               </div>
             </div>
           </div>
-          
-          ${card.attached_tool ? `
-            <div class="px-2 py-1 bg-sky-950/40 border border-sky-800/40 rounded-lg text-[10px] text-sky-300 flex items-center justify-between my-1">
-              <span>🔧 Equipped Tool: <b>${card.attached_tool.name}</b></span>
-              <span>${card.attached_tool.tool_hp_boost ? `+${card.attached_tool.tool_hp_boost} HP` : '+50 DMG vs ex'}</span>
+
+          ${card.ability ? `
+            <div class="px-2 py-1 bg-purple-950/40 border border-purple-800/40 rounded-lg text-[10px] text-purple-300 flex items-center justify-between my-1">
+              <span>⚡ Ability: <b>${card.ability.name}</b></span>
+              <span class="text-slate-400 text-[9px]">${card.ability_used ? 'Used' : 'Ready'}</span>
             </div>
           ` : ''}
 
           <div class="my-2 p-2 bg-slate-950/60 rounded-xl border border-slate-800/80 space-y-1">
             <div class="text-[10px] font-semibold text-slate-400 flex justify-between">
               <span>Attacks</span>
-              <span class="text-amber-400">${card.attached_energy.length} Energy Attached</span>
+              <span class="text-amber-400">${card.attached_energy.length} Energy</span>
             </div>
             ${card.attacks.map(atk => `
               <div class="flex items-center justify-between text-xs py-0.5 border-t border-slate-800/50">
                 <span class="font-medium text-slate-300">${atk.name} (${atk.cost.join('+')})</span>
-                <span class="font-bold text-amber-400">${atk.dmg} DMG</span>
+                <span class="font-bold text-amber-400">${atk.dmg} DMG ${atk.bench_dmg ? `(+${atk.bench_dmg} Bench)` : ''}</span>
               </div>
             `).join('')}
-          </div>
-
-          <div class="flex justify-between items-center text-[10px] text-slate-500 pt-1">
-            <span>Retreat: ${card.retreat}</span>
-            <span>Attached: ${card.attached_energy.map(e => e.element[0]).join(', ') || 'None'}</span>
           </div>
         </div>
       `;
@@ -775,7 +815,7 @@
       document.getElementById('p2-bench-container').innerHTML = p2BenchHtml;
 
       document.getElementById('p1-hand-container').innerHTML = p1.hand.map(c => `
-        <div class="w-32">${renderCard(c, true)}</div>
+        <div class="w-28">${renderCard(c, true)}</div>
       `).join('');
 
       const statusEl = document.getElementById('game-status-text');
@@ -799,10 +839,10 @@
       const boardDiff = board1 - board2;
 
       const p2Dmg = p2.active ? p2.active.damage_counters : 0;
-      const p2Max = p2.active ? p2.active.getEffectiveMaxHp() : 0;
+      const p2Max = p2.active ? p2.active.getEffectiveMaxHp() : 1;
       const energy1 = (p1.active ? p1.active.attached_energy.length : 0) + p1.bench.reduce((acc, b) => acc + b.attached_energy.length, 0);
 
-      let score = (prizeDiff * 0.4) + (boardDiff * 0.15) + ((p2Max > 0 ? p2Dmg / p2Max : 0) * 0.25) + (energy1 * 0.05);
+      let score = (prizeDiff * 0.4) + (boardDiff * 0.15) + ((p2Dmg / p2Max) * 0.25) + (energy1 * 0.05);
       score = Math.max(-1.0, Math.min(1.0, score));
 
       document.getElementById('mcts-score-value').textContent = (score >= 0 ? '+' : '') + score.toFixed(3);
@@ -836,7 +876,7 @@
         clearInterval(autoPlayTimer);
         isAutoPlaying = false;
         document.getElementById('auto-icon').textContent = '⏩';
-        document.getElementById('auto-text').textContent = 'Auto Play';
+        document.getElementById('auto-text').textContent = 'Auto';
       } else {
         const speed = parseInt(document.getElementById('speed-slider').value, 10);
         isAutoPlaying = true;

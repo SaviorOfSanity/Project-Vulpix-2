@@ -103,7 +103,7 @@
     "ability": {
       "name": "Infernal Reign",
       "type": "on_evolve",
-      "description": "When evolved, attach up to 3 Basic Fire Energy from your deck to your Pokémon."
+      "description": "When you play this card from your hand to evolve a Pokémon, search your deck for up to 3 Basic Fire Energy and attach them to your Pokémon."
     },
     "attacks": [
       {
@@ -113,6 +113,241 @@
       }
     ],
     "retreat_cost": 2
+  },
+  {
+    "name": "Pidgey",
+    "card_type": "Pokemon",
+    "stage": "Basic",
+    "evolves_from": null,
+    "element": "Colorless",
+    "weakness": "Lightning",
+    "resistance": "Fighting",
+    "hp": 60,
+    "prize_yield": 1,
+    "is_rule_box": false,
+    "attacks": [
+      {
+        "name": "Gust",
+        "cost": ["Colorless"],
+        "damage": 10
+      }
+    ],
+    "retreat_cost": 1
+  },
+  {
+    "name": "Pidgeotto",
+    "card_type": "Pokemon",
+    "stage": "Stage 1",
+    "evolves_from": "Pidgey",
+    "element": "Colorless",
+    "weakness": "Lightning",
+    "resistance": "Fighting",
+    "hp": 80,
+    "prize_yield": 1,
+    "is_rule_box": false,
+    "attacks": [
+      {
+        "name": "Wing Attack",
+        "cost": ["Colorless", "Colorless"],
+        "damage": 40
+      }
+    ],
+    "retreat_cost": 1
+  },
+  {
+    "name": "Pidgeot ex",
+    "card_type": "Pokemon",
+    "stage": "Stage 2",
+    "evolves_from": "Pidgeotto",
+    "element": "Colorless",
+    "weakness": "Lightning",
+    "resistance": "Fighting",
+    "hp": 280,
+    "prize_yield": 2,
+    "is_rule_box": true,
+    "ability": {
+      "name": "Quick Search",
+      "type": "activated",
+      "description": "Once during your turn, you may search your deck for any 1 card and put it into your hand. Then, shuffle your deck."
+    },
+    "attacks": [
+      {
+        "name": "Blistering Wind",
+        "cost": ["Colorless", "Colorless"],
+        "damage": 120
+      }
+    ],
+    "retreat_cost": 0
+  },
+  {
+    "name": "Dreepy",
+    "card_type": "Pokemon",
+    "stage": "Basic",
+    "evolves_from": null,
+    "element": "Dragon",
+    "weakness": null,
+    "resistance": null,
+    "hp": 60,
+    "prize_yield": 1,
+    "is_rule_box": false,
+    "attacks": [
+      {
+        "name": "Bite",
+        "cost": ["Psychic"],
+        "damage": 10
+      }
+    ],
+    "retreat_cost": 1
+  },
+  {
+    "name": "Drakloak",
+    "card_type": "Pokemon",
+    "stage": "Stage 1",
+    "evolves_from": "Dreepy",
+    "element": "Dragon",
+    "weakness": null,
+    "resistance": null,
+    "hp": 90,
+    "prize_yield": 1,
+    "is_rule_box": false,
+    "ability": {
+      "name": "Recon Directive",
+      "type": "activated",
+      "description": "Once during your turn, look at the top 2 cards of your deck and put 1 of them into your hand. Put the other on the bottom of your deck."
+    },
+    "attacks": [
+      {
+        "name": "Dragon Headbutt",
+        "cost": ["Fire", "Psychic"],
+        "damage": 70
+      }
+    ],
+    "retreat_cost": 1
+  },
+  {
+    "name": "Dragapult ex",
+    "card_type": "Pokemon",
+    "stage": "Stage 2",
+    "evolves_from": "Drakloak",
+    "element": "Dragon",
+    "weakness": null,
+    "resistance": null,
+    "hp": 320,
+    "prize_yield": 2,
+    "is_rule_box": true,
+    "attacks": [
+      {
+        "name": "Phantom Dive",
+        "cost": ["Fire", "Psychic"],
+        "damage": 200,
+        "bench_damage": 60
+      }
+    ],
+    "retreat_cost": 1
+  },
+  {
+    "name": "Teal Mask Ogerpon ex",
+    "card_type": "Pokemon",
+    "stage": "Basic",
+    "evolves_from": null,
+    "element": "Grass",
+    "weakness": "Fire",
+    "resistance": null,
+    "hp": 210,
+    "prize_yield": 2,
+    "is_rule_box": true,
+    "ability": {
+      "name": "Teal Dance",
+      "type": "activated",
+      "description": "Once during your turn, you may attach a Basic Grass Energy from your hand to this Pokémon. If you do, draw a card."
+    },
+    "attacks": [
+      {
+        "name": "Myriad Leaf Shower",
+        "cost": ["Grass", "Colorless", "Colorless"],
+        "damage": 140
+      }
+    ],
+    "retreat_cost": 1
+  },
+  {
+    "name": "Raging Bolt ex",
+    "card_type": "Pokemon",
+    "stage": "Basic",
+    "evolves_from": null,
+    "element": "Dragon",
+    "weakness": null,
+    "resistance": null,
+    "hp": 240,
+    "prize_yield": 2,
+    "is_rule_box": true,
+    "tag": "Ancient",
+    "attacks": [
+      {
+        "name": "Bursting Roar",
+        "cost": ["Colorless"],
+        "damage": 0
+      },
+      {
+        "name": "Bellowing Thunder",
+        "cost": ["Lightning", "Fighting"],
+        "damage": 70,
+        "damage_multiplier": "energy_discard"
+      }
+    ],
+    "retreat_cost": 3
+  },
+  {
+    "name": "Miraidon ex",
+    "card_type": "Pokemon",
+    "stage": "Basic",
+    "evolves_from": null,
+    "element": "Lightning",
+    "weakness": "Fighting",
+    "resistance": null,
+    "hp": 220,
+    "prize_yield": 2,
+    "is_rule_box": true,
+    "ability": {
+      "name": "Tandem Unit",
+      "type": "activated",
+      "description": "Once during your turn, you may search your deck for up to 2 Basic Lightning Pokémon and put them onto your Bench. Then, shuffle your deck."
+    },
+    "attacks": [
+      {
+        "name": "Photon Blaster",
+        "cost": ["Lightning", "Lightning", "Colorless"],
+        "damage": 220
+      }
+    ],
+    "retreat_cost": 1
+  },
+  {
+    "name": "Iron Hands ex",
+    "card_type": "Pokemon",
+    "stage": "Basic",
+    "evolves_from": null,
+    "element": "Lightning",
+    "weakness": "Fighting",
+    "resistance": null,
+    "hp": 230,
+    "prize_yield": 2,
+    "is_rule_box": true,
+    "tag": "Future",
+    "attacks": [
+      {
+        "name": "Arm Press",
+        "cost": ["Lightning", "Lightning", "Colorless"],
+        "damage": 160
+      },
+      {
+        "name": "Amp You Very Much",
+        "cost": ["Lightning", "Colorless", "Colorless", "Colorless"],
+        "damage": 120,
+        "extra_prizes": 1
+      }
+    ],
+    "retreat_cost": 4
   },
   {
     "name": "Professor's Research",
@@ -133,6 +368,13 @@
     "effect_description": "Both players shuffle their hands into their decks and draw cards equal to their remaining Prize cards."
   },
   {
+    "name": "Professor Sada's Vitality",
+    "card_type": "Trainer",
+    "trainer_type": "Supporter",
+    "tag": "Ancient",
+    "effect_description": "Choose up to 2 of your Ancient Pokémon and attach a Basic Energy from your discard pile to each of them. If you attached Energy this way, draw 3 cards."
+  },
+  {
     "name": "Nest Ball",
     "card_type": "Trainer",
     "trainer_type": "Item",
@@ -143,6 +385,30 @@
     "card_type": "Trainer",
     "trainer_type": "Item",
     "effect_description": "Discard 2 cards from your hand. Search your deck for a Pokémon, reveal it, and put it into your hand. Then, shuffle your deck."
+  },
+  {
+    "name": "Buddy-Buddy Poffin",
+    "card_type": "Trainer",
+    "trainer_type": "Item",
+    "effect_description": "Search your deck for up to 2 Basic Pokémon with 70 HP or less and put them onto your Bench. Then, shuffle your deck."
+  },
+  {
+    "name": "Super Rod",
+    "card_type": "Trainer",
+    "trainer_type": "Item",
+    "effect_description": "Shuffle up to 3 in any combination of Pokémon and Basic Energy cards from your discard pile into your deck."
+  },
+  {
+    "name": "Counter Catcher",
+    "card_type": "Trainer",
+    "trainer_type": "Item",
+    "effect_description": "You can play this card only if you have more Prize cards remaining than your opponent. Switch in 1 of your opponent's Benched Pokémon to the Active Spot."
+  },
+  {
+    "name": "Electric Generator",
+    "card_type": "Trainer",
+    "trainer_type": "Item",
+    "effect_description": "Look at the top 5 cards of your deck and attach up to 2 Basic Lightning Energy cards you find there to your Benched Lightning Pokémon in any way you like. Shuffle the other cards back into your deck."
   },
   {
     "name": "Switch",
@@ -179,6 +445,33 @@
     "effect_description": "Once during each player's turn, that player may search their deck for a Basic Pokémon without a Rule Box and put it onto their Bench. Then, shuffle their deck."
   },
   {
+    "name": "Double Turbo Energy",
+    "card_type": "Energy",
+    "energy_type": "Special",
+    "energy_units": 2,
+    "element": "Colorless",
+    "damage_modifier": -20,
+    "effect_description": "As long as this card is attached to a Pokémon, it provides 2 Colorless Energy. The attacks of the Pokémon this card is attached to do 20 less damage to the opponent's Pokémon."
+  },
+  {
+    "name": "Jet Energy",
+    "card_type": "Energy",
+    "energy_type": "Special",
+    "energy_units": 1,
+    "element": "Colorless",
+    "on_attach_switch": true,
+    "effect_description": "As long as this card is attached to a Pokémon, it provides 1 Colorless Energy. When you attach this card from your hand to a Benched Pokémon, switch that Pokémon with your Active Pokémon."
+  },
+  {
+    "name": "Mist Energy",
+    "card_type": "Energy",
+    "energy_type": "Special",
+    "energy_units": 1,
+    "element": "Colorless",
+    "effect_protection": true,
+    "effect_description": "As long as this card is attached to a Pokémon, it provides 1 Colorless Energy. Prevent all effects of attacks used by your opponent's Pokémon done to the Pokémon this card is attached to (damage is not an effect)."
+  },
+  {
     "name": "Lightning Energy",
     "card_type": "Energy",
     "energy_type": "Lightning"
@@ -187,5 +480,20 @@
     "name": "Fire Energy",
     "card_type": "Energy",
     "energy_type": "Fire"
+  },
+  {
+    "name": "Grass Energy",
+    "card_type": "Energy",
+    "energy_type": "Grass"
+  },
+  {
+    "name": "Psychic Energy",
+    "card_type": "Energy",
+    "energy_type": "Psychic"
+  },
+  {
+    "name": "Fighting Energy",
+    "card_type": "Energy",
+    "energy_type": "Fighting"
   }
 ]

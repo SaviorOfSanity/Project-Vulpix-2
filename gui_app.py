@@ -1,7 +1,7 @@
 """
-Pokémon TCG Visual GUI & MCTS Game State Explorer (Standard Format)
+Pokémon TCG Visual GUI & MCTS Game State Explorer (Standard Format - Phase 2)
 Uses Python's standard tkinter GUI framework (no external dependencies needed).
-Connects directly to the live Game Engine, Multi-Prize Pokémon ex, Items, Tools, Stadiums, and MCTS Controller.
+Connects directly to the live Game Engine, Meta Archetypes, Abilities, Special Energy, and MCTS Controller.
 """
 
 import tkinter as tk
@@ -17,44 +17,96 @@ GameState = game_engine.GameState
 TurnBasedGreedyAI = game_engine.TurnBasedGreedyAI
 MCTSController = game_engine.MCTSController
 
+ARCHETYPES = {
+    "Charizard ex / Pidgeot ex": (
+        ["Charmander"] * 4 +
+        ["Charmeleon"] * 1 +
+        ["Charizard ex"] * 3 +
+        ["Pidgey"] * 3 +
+        ["Pidgeot ex"] * 2 +
+        ["Rare Candy"] * 4 +
+        ["Buddy-Buddy Poffin"] * 4 +
+        ["Ultra Ball"] * 4 +
+        ["Nest Ball"] * 2 +
+        ["Super Rod"] * 2 +
+        ["Counter Catcher"] * 1 +
+        ["Professor's Research"] * 4 +
+        ["Boss's Orders"] * 2 +
+        ["Iono"] * 3 +
+        ["Artazon"] * 1 +
+        ["Fire Energy"] * 16 +
+        ["Double Turbo Energy"] * 4
+    ),
+    "Dragapult ex": (
+        ["Dreepy"] * 4 +
+        ["Drakloak"] * 4 +
+        ["Dragapult ex"] * 3 +
+        ["Buddy-Buddy Poffin"] * 4 +
+        ["Rare Candy"] * 3 +
+        ["Ultra Ball"] * 4 +
+        ["Super Rod"] * 2 +
+        ["Counter Catcher"] * 1 +
+        ["Professor's Research"] * 4 +
+        ["Boss's Orders"] * 2 +
+        ["Iono"] * 3 +
+        ["Fire Energy"] * 8 +
+        ["Psychic Energy"] * 8 +
+        ["Jet Energy"] * 4 +
+        ["Mist Energy"] * 6
+    ),
+    "Raging Bolt ex / Ogerpon ex": (
+        ["Raging Bolt ex"] * 4 +
+        ["Teal Mask Ogerpon ex"] * 4 +
+        ["Professor Sada's Vitality"] * 4 +
+        ["Nest Ball"] * 4 +
+        ["Ultra Ball"] * 4 +
+        ["Super Rod"] * 2 +
+        ["Bravery Charm"] * 3 +
+        ["Professor's Research"] * 4 +
+        ["Boss's Orders"] * 2 +
+        ["Iono"] * 3 +
+        ["Grass Energy"] * 14 +
+        ["Lightning Energy"] * 6 +
+        ["Fighting Energy"] * 6
+    ),
+    "Miraidon ex / Iron Hands ex": (
+        ["Miraidon ex"] * 3 +
+        ["Iron Hands ex"] * 3 +
+        ["Pikachu ex"] * 2 +
+        ["Electric Generator"] * 4 +
+        ["Nest Ball"] * 4 +
+        ["Ultra Ball"] * 4 +
+        ["Super Rod"] * 2 +
+        ["Bravery Charm"] * 2 +
+        ["Double Turbo Energy"] * 4 +
+        ["Professor's Research"] * 4 +
+        ["Boss's Orders"] * 2 +
+        ["Iono"] * 2 +
+        ["Lightning Energy"] * 24
+    )
+}
+
 
 class PokemonTCGGUI:
     def __init__(self, root):
         self.root = root
-        self.root.title("Pokémon TCG Simulator & MCTS Visualizer (Standard Format)")
-        self.root.geometry("1240x880")
-        self.root.minsize(1050, 750)
+        self.root.title("Pokémon TCG Simulator & MCTS Visualizer (Standard Format - Phase 2)")
+        self.root.geometry("1280x890")
+        self.root.minsize(1100, 780)
         self.root.configure(bg="#0f172a")
 
         # Game State
         self.factory = CardFactory('cards.json')
-        self.deck_p1_names = (
-            ["Pikachu ex"] * 4 +
-            ["Pikachu"] * 6 +
-            ["Nest Ball"] * 4 +
-            ["Bravery Charm"] * 2 +
-            ["Professor's Research"] * 4 +
-            ["Boss's Orders"] * 2 +
-            ["Lightning Energy"] * 12
-        )
-        self.deck_p2_names = (
-            ["Charmander"] * 6 +
-            ["Charmeleon"] * 4 +
-            ["Charizard ex"] * 3 +
-            ["Rare Candy"] * 3 +
-            ["Ultra Ball"] * 4 +
-            ["Artazon"] * 2 +
-            ["Professor's Research"] * 4 +
-            ["Fire Energy"] * 10
-        )
+        self.p1_archetype_name = "Charizard ex / Pidgeot ex"
+        self.p2_archetype_name = "Dragapult ex"
 
         self.game = None
-        self.mcts = MCTSController(iteration_limit=150, simulation_depth=6)
+        self.mcts = MCTSController(iteration_limit=300, simulation_depth=16)
         self.greedy = TurnBasedGreedyAI()
         
         self.is_auto_playing = False
         self.auto_speed_ms = 600
-        self.mode = "ai_vs_ai"  # "ai_vs_ai" or "human_vs_mcts"
+        self.mode = "ai_vs_ai"
 
         self.setup_styles()
         self.build_ui()
@@ -64,6 +116,7 @@ class PokemonTCGGUI:
         style = ttk.Style()
         style.theme_use('clam')
         style.configure("TProgressbar", thickness=8, troughcolor="#1e293b", background="#10b981")
+        style.configure("TCombobox", fieldbackground="#1e293b", background="#334155", foreground="#f8fafc")
 
     def build_ui(self):
         # 1. Top Navigation & Controls Bar
@@ -73,62 +126,75 @@ class PokemonTCGGUI:
         title_label = tk.Label(
             top_bar,
             text="⚡ Pokémon TCG & MCTS Engine",
-            font=("Segoe UI", 14, "bold"),
+            font=("Segoe UI", 13, "bold"),
             fg="#f8fafc",
             bg="#1e293b"
         )
-        title_label.pack(side="left", padx=8)
+        title_label.pack(side="left", padx=6)
 
         # Mode Selector
         self.mode_var = tk.StringVar(value="ai_vs_ai")
         mode_btn1 = tk.Radiobutton(
             top_bar, text="MCTS vs AI", variable=self.mode_var, value="ai_vs_ai",
             command=self.on_mode_change, bg="#1e293b", fg="#94a3b8", selectcolor="#0f172a",
-            activebackground="#1e293b", activeforeground="#f8fafc", font=("Segoe UI", 9, "bold")
+            activebackground="#1e293b", activeforeground="#f8fafc", font=("Segoe UI", 8, "bold")
         )
-        mode_btn1.pack(side="left", padx=4)
+        mode_btn1.pack(side="left", padx=2)
 
         mode_btn2 = tk.Radiobutton(
             top_bar, text="Human vs MCTS", variable=self.mode_var, value="human_vs_mcts",
             command=self.on_mode_change, bg="#1e293b", fg="#94a3b8", selectcolor="#0f172a",
-            activebackground="#1e293b", activeforeground="#f8fafc", font=("Segoe UI", 9, "bold")
+            activebackground="#1e293b", activeforeground="#f8fafc", font=("Segoe UI", 8, "bold")
         )
-        mode_btn2.pack(side="left", padx=4)
+        mode_btn2.pack(side="left", padx=2)
+
+        # Deck Archetype Pickers
+        tk.Label(top_bar, text="P1:", font=("Segoe UI", 8), fg="#94a3b8", bg="#1e293b").pack(side="left", padx=(8, 2))
+        self.p1_combo = ttk.Combobox(top_bar, values=list(ARCHETYPES.keys()), state="readonly", width=18, font=("Segoe UI", 8))
+        self.p1_combo.set(self.p1_archetype_name)
+        self.p1_combo.pack(side="left", padx=2)
+        self.p1_combo.bind("<<ComboboxSelected>>", self.on_archetype_change)
+
+        tk.Label(top_bar, text="P2:", font=("Segoe UI", 8), fg="#94a3b8", bg="#1e293b").pack(side="left", padx=(6, 2))
+        self.p2_combo = ttk.Combobox(top_bar, values=list(ARCHETYPES.keys()), state="readonly", width=18, font=("Segoe UI", 8))
+        self.p2_combo.set(self.p2_archetype_name)
+        self.p2_combo.pack(side="left", padx=2)
+        self.p2_combo.bind("<<ComboboxSelected>>", self.on_archetype_change)
 
         # Action Buttons
         btn_new = tk.Button(
-            top_bar, text="🔄 New Match", font=("Segoe UI", 9, "bold"),
+            top_bar, text="🔄 New Match", font=("Segoe UI", 8, "bold"),
             bg="#059669", fg="#ffffff", activebackground="#10b981", activeforeground="#ffffff",
-            relief="flat", padx=10, pady=4, cursor="hand2", command=self.start_new_match
+            relief="flat", padx=8, pady=3, cursor="hand2", command=self.start_new_match
         )
-        btn_new.pack(side="left", padx=6)
+        btn_new.pack(side="left", padx=4)
 
         self.btn_step = tk.Button(
-            top_bar, text="▶️ Next Step", font=("Segoe UI", 9, "bold"),
+            top_bar, text="▶️ Next Step", font=("Segoe UI", 8, "bold"),
             bg="#4f46e5", fg="#ffffff", activebackground="#6366f1", activeforeground="#ffffff",
-            relief="flat", padx=10, pady=4, cursor="hand2", command=self.step_action
+            relief="flat", padx=8, pady=3, cursor="hand2", command=self.step_action
         )
-        self.btn_step.pack(side="left", padx=6)
+        self.btn_step.pack(side="left", padx=4)
 
         self.btn_auto = tk.Button(
-            top_bar, text="⏩ Auto Play", font=("Segoe UI", 9, "bold"),
+            top_bar, text="⏩ Auto Play", font=("Segoe UI", 8, "bold"),
             bg="#334155", fg="#ffffff", activebackground="#475569", activeforeground="#ffffff",
-            relief="flat", padx=10, pady=4, cursor="hand2", command=self.toggle_auto_play
+            relief="flat", padx=8, pady=3, cursor="hand2", command=self.toggle_auto_play
         )
-        self.btn_auto.pack(side="left", padx=6)
+        self.btn_auto.pack(side="left", padx=4)
 
         # Speed Slider
-        lbl_speed = tk.Label(top_bar, text="Speed:", font=("Segoe UI", 9), fg="#94a3b8", bg="#1e293b")
-        lbl_speed.pack(side="left", padx=(12, 4))
+        lbl_speed = tk.Label(top_bar, text="Speed:", font=("Segoe UI", 8), fg="#94a3b8", bg="#1e293b")
+        lbl_speed.pack(side="left", padx=(8, 2))
         self.slider_speed = tk.Scale(
             top_bar, from_=100, to=1500, orient="horizontal", bg="#1e293b", fg="#94a3b8",
-            highlightthickness=0, length=90, showvalue=0, command=self.on_speed_change
+            highlightthickness=0, length=70, showvalue=0, command=self.on_speed_change
         )
         self.slider_speed.set(600)
         self.slider_speed.pack(side="left", padx=2)
 
-        # 2. Main Content Split (Left: Playmat Arena, Right: Telemetry & Logs)
-        content_frame = tk.Frame(self.root, bg="#0f172a", padx=10, pady=8)
+        # 2. Main Content Split
+        content_frame = tk.Frame(self.root, bg="#0f172a", padx=10, pady=6)
         content_frame.pack(fill="both", expand=True)
 
         left_playmat = tk.Frame(content_frame, bg="#0f172a")
@@ -140,69 +206,69 @@ class PokemonTCGGUI:
         # --- PLAYMAT: OPPONENT (P2) ---
         self.p2_card_frame = tk.LabelFrame(
             left_playmat, text=" Opponent: Player 2 (Greedy AI) ", font=("Segoe UI", 10, "bold"),
-            bg="#1e293b", fg="#f43f5e", relief="groove", bd=1, padx=8, pady=6
+            bg="#1e293b", fg="#f43f5e", relief="groove", bd=1, padx=8, pady=4
         )
-        self.p2_card_frame.pack(fill="x", pady=(0, 4))
+        self.p2_card_frame.pack(fill="x", pady=(0, 3))
 
         self.p2_stats_label = tk.Label(self.p2_card_frame, text="", font=("Segoe UI", 9), fg="#94a3b8", bg="#1e293b")
         self.p2_stats_label.pack(anchor="w")
 
         p2_board_row = tk.Frame(self.p2_card_frame, bg="#1e293b")
-        p2_board_row.pack(fill="x", pady=4)
+        p2_board_row.pack(fill="x", pady=2)
 
         self.p2_active_label = tk.Label(
-            p2_board_row, text="Active: (None)", font=("Segoe UI", 10, "bold"),
+            p2_board_row, text="Active: (None)", font=("Segoe UI", 9, "bold"),
             bg="#0f172a", fg="#f8fafc", relief="ridge", bd=2, width=34, height=5, justify="center"
         )
         self.p2_active_label.pack(side="left", padx=4)
 
         self.p2_bench_label = tk.Label(
-            p2_board_row, text="Bench: (Empty)", font=("Segoe UI", 9),
-            bg="#0f172a", fg="#cbd5e1", relief="ridge", bd=1, height=5, justify="left", anchor="nw", padx=6, pady=4
+            p2_board_row, text="Bench: (Empty)", font=("Segoe UI", 8),
+            bg="#0f172a", fg="#cbd5e1", relief="ridge", bd=1, height=5, justify="left", anchor="nw", padx=6, pady=3
         )
         self.p2_bench_label.pack(side="left", fill="both", expand=True, padx=4)
 
-        # --- CENTER STATUS & STADIUM BANNER ---
-        self.center_banner = tk.Frame(left_playmat, bg="#1e1b4b", padx=10, pady=6, relief="groove", bd=1)
-        self.center_banner.pack(fill="x", pady=4)
+        # --- CENTER STATUS BANNER ---
+        self.center_banner = tk.Frame(left_playmat, bg="#1e1b4b", padx=10, pady=5, relief="groove", bd=1)
+        self.center_banner.pack(fill="x", pady=3)
 
         self.turn_status_label = tk.Label(
             self.center_banner, text="Turn 1 | Active Player: P1",
-            font=("Segoe UI", 10, "bold"), fg="#a5b4fc", bg="#1e1b4b"
+            font=("Segoe UI", 9, "bold"), fg="#a5b4fc", bg="#1e1b4b"
         )
         self.turn_status_label.pack(side="left")
 
         self.stadium_label = tk.Label(
             self.center_banner, text="Stadium: (None)",
-            font=("Segoe UI", 9, "bold"), fg="#34d399", bg="#1e1b4b"
+            font=("Segoe UI", 8, "bold"), fg="#34d399", bg="#1e1b4b"
         )
-        self.stadium_label.pack(side="left", padx=16)
+        self.stadium_label.pack(side="left", padx=14)
 
         self.last_move_label = tk.Label(
             self.center_banner, text="Game Initialized.",
-            font=("Segoe UI", 9, "italic"), fg="#f8fafc", bg="#1e1b4b"
+            font=("Segoe UI", 8, "italic"), fg="#f8fafc", bg="#1e1b4b"
         )
         self.last_move_label.pack(side="right")
 
         # --- PLAYMAT: PLAYER 1 (MCTS / Human) ---
         self.p1_card_frame = tk.LabelFrame(
             left_playmat, text=" Player 1: (MCTS AI / You) ", font=("Segoe UI", 10, "bold"),
-            bg="#1e293b", fg="#6366f1", relief="groove", bd=1, padx=8, pady=6
+            bg="#1e293b", fg="#6366f1", relief="groove", bd=1, padx=8, pady=4
         )
-        self.p1_card_frame.pack(fill="x", pady=(4, 0))
+        self.p1_card_frame.pack(fill="x", pady=(3, 0))
 
         p1_board_row = tk.Frame(self.p1_card_frame, bg="#1e293b")
-        p1_board_row.pack(fill="x", pady=4)
+        p1_board_row.pack(fill="x", pady=2)
 
         self.p1_active_label = tk.Label(
-            p1_board_row, text="Active: (None)", font=("Segoe UI", 10, "bold"),
+            p1_board_row, text="Active: (None)", font=("Segoe UI", 9, "bold"),
             bg="#0f172a", fg="#f8fafc", relief="ridge", bd=2, width=34, height=5, justify="center"
         )
         self.p1_active_label.pack(side="left", padx=4)
 
         self.p1_bench_label = tk.Label(
-            p1_board_row, text="Bench: (Empty)", font=("Segoe UI", 9),
-            bg="#0f172a", fg="#cbd5e1", relief="ridge", bd=1, height=5, justify="left", anchor="nw", padx=6, pady=4
+            p1_board_row, text="Bench: (Empty)", font=("Segoe UI", 8),
+            bg="#0f172a", fg="#cbd5e1", relief="ridge", bd=1, height=5, justify="left", anchor="nw", padx=6, pady=3
         )
         self.p1_bench_label.pack(side="left", fill="both", expand=True, padx=4)
 
@@ -210,35 +276,35 @@ class PokemonTCGGUI:
         self.p1_stats_label.pack(anchor="w", pady=(2, 0))
 
         # P1 Hand View
-        self.p1_hand_frame = tk.Frame(self.p1_card_frame, bg="#0f172a", padx=6, pady=4, relief="sunken", bd=1)
-        self.p1_hand_frame.pack(fill="x", pady=4)
+        self.p1_hand_frame = tk.Frame(self.p1_card_frame, bg="#0f172a", padx=6, pady=3, relief="sunken", bd=1)
+        self.p1_hand_frame.pack(fill="x", pady=3)
         self.p1_hand_label = tk.Label(
-            self.p1_hand_frame, text="Hand: (Empty)", font=("Segoe UI", 9),
+            self.p1_hand_frame, text="Hand: (Empty)", font=("Segoe UI", 8),
             fg="#e2e8f0", bg="#0f172a", anchor="w", justify="left"
         )
         self.p1_hand_label.pack(fill="x")
 
         # Interactive Human Controls Panel
-        self.human_panel = tk.Frame(left_playmat, bg="#0f172a", pady=4)
+        self.human_panel = tk.Frame(left_playmat, bg="#0f172a", pady=2)
         self.human_panel.pack(fill="x")
         self.human_actions_frame = tk.Frame(self.human_panel, bg="#0f172a")
         self.human_actions_frame.pack(fill="x")
 
         # --- RIGHT SIDE: TELEMETRY & LOGS ---
         mcts_box = tk.LabelFrame(
-            right_panel, text=" MCTS Heuristic Advantage ", font=("Segoe UI", 10, "bold"),
-            bg="#1e293b", fg="#38bdf8", relief="groove", bd=1, padx=8, pady=8
+            right_panel, text=" MCTS Heuristic Advantage ", font=("Segoe UI", 9, "bold"),
+            bg="#1e293b", fg="#38bdf8", relief="groove", bd=1, padx=8, pady=6
         )
-        mcts_box.pack(fill="x", pady=(0, 6))
+        mcts_box.pack(fill="x", pady=(0, 4))
 
         self.score_display_label = tk.Label(
-            mcts_box, text="Evaluation Score: +0.000", font=("Segoe UI", 11, "bold"),
+            mcts_box, text="Evaluation Score: +0.000", font=("Segoe UI", 10, "bold"),
             fg="#10b981", bg="#1e293b"
         )
         self.score_display_label.pack(anchor="w")
 
         self.progress_advantage = ttk.Progressbar(mcts_box, orient="horizontal", mode="determinate", maximum=2.0)
-        self.progress_advantage.pack(fill="x", pady=4)
+        self.progress_advantage.pack(fill="x", pady=3)
         self.progress_advantage['value'] = 1.0
 
         self.breakdown_label = tk.Label(
@@ -248,8 +314,8 @@ class PokemonTCGGUI:
         self.breakdown_label.pack(anchor="w")
 
         log_box = tk.LabelFrame(
-            right_panel, text=" Move-by-Move Telemetry Log ", font=("Segoe UI", 10, "bold"),
-            bg="#1e293b", fg="#f8fafc", relief="groove", bd=1, padx=6, pady=6
+            right_panel, text=" Move-by-Move Telemetry Log ", font=("Segoe UI", 9, "bold"),
+            bg="#1e293b", fg="#f8fafc", relief="groove", bd=1, padx=6, pady=4
         )
         log_box.pack(fill="both", expand=True)
 
@@ -273,6 +339,11 @@ class PokemonTCGGUI:
             self.toggle_auto_play()
         self.start_new_match()
 
+    def on_archetype_change(self, event=None):
+        self.p1_archetype_name = self.p1_combo.get()
+        self.p2_archetype_name = self.p2_combo.get()
+        self.start_new_match()
+
     def on_speed_change(self, val):
         self.auto_speed_ms = int(val)
 
@@ -285,9 +356,14 @@ class PokemonTCGGUI:
         c1 = self.mcts if self.mode == "ai_vs_ai" else None
         c2 = self.greedy
 
-        p1_name = "Player 1 (MCTS)" if self.mode == "ai_vs_ai" else "Player 1 (Human)"
-        p1 = Player(p1_name, self.deck_p1_names, self.factory, controller=c1)
-        p2 = Player("Player 2 (Greedy AI)", self.deck_p2_names, self.factory, controller=c2)
+        d1_list = ARCHETYPES[self.p1_archetype_name]
+        d2_list = ARCHETYPES[self.p2_archetype_name]
+
+        p1_name = f"P1 [{self.p1_archetype_name}]"
+        p2_name = f"P2 [{self.p2_archetype_name}]"
+
+        p1 = Player(p1_name, d1_list, self.factory, controller=c1)
+        p2 = Player(p2_name, d2_list, self.factory, controller=c2)
 
         self.game = GameState(p1, p2)
         self.game.setup_game(verbose=False)
@@ -300,11 +376,12 @@ class PokemonTCGGUI:
             return "(None)"
         eff_max = p_card.get_effective_max_hp()
         cur_hp = eff_max - p_card.damage_counters
-        energy_count = len(p_card.attached_energy)
-        ex_str = " [EX 2P]" if p_card.is_rule_box else ""
+        energy_count = sum(getattr(e, 'energy_units', 1) for e in p_card.attached_energy)
+        ex_str = f" [EX {p_card.prize_yield}P]" if p_card.is_rule_box else ""
         tool_str = f" [Tool: {p_card.attached_tool.name}]" if p_card.attached_tool else ""
+        ab_str = f" [Ability: {p_card.ability['name']}]" if p_card.ability else ""
         atks = ", ".join([f"{a['name']} ({a['damage']}dmg)" for a in p_card.attacks])
-        return f"{p_card.name}{ex_str}{tool_str}\nHP: {cur_hp}/{eff_max} | Energy: {energy_count}⚡\nAttacks: {atks}"
+        return f"{p_card.name}{ex_str}{tool_str}{ab_str}\nHP: {cur_hp}/{eff_max} | Energy: {energy_count}⚡\nAttacks: {atks}"
 
     def update_view(self):
         if not self.game:
@@ -361,8 +438,8 @@ class PokemonTCGGUI:
         board_diff = p1_board - p2_board
         p2_dmg = p2.active_pokemon.damage_counters if p2.active_pokemon else 0
         p2_max = p2.active_pokemon.get_effective_max_hp() if p2.active_pokemon else 1
-        p1_energy = sum(len(p.attached_energy) for p in ([p1.active_pokemon] + p1.bench) if p)
-        p2_energy = sum(len(p.attached_energy) for p in ([p2.active_pokemon] + p2.bench) if p)
+        p1_energy = sum(sum(getattr(e, 'energy_units', 1) for e in p.attached_energy) for p in ([p1.active_pokemon] + p1.bench) if p)
+        p2_energy = sum(sum(getattr(e, 'energy_units', 1) for e in p.attached_energy) for p in ([p2.active_pokemon] + p2.bench) if p)
 
         self.breakdown_label.config(
             text=f"Prize Diff: {prize_diff:+d} | Board Diff: {board_diff:+d} | Damage: {p2_dmg}/{p2_max} | Energy Diff: {p1_energy - p2_energy:+d}"
@@ -375,7 +452,7 @@ class PokemonTCGGUI:
             moves = self.game.get_legal_moves()
             lbl_pick = tk.Label(self.human_actions_frame, text="Your Move:", font=("Segoe UI", 9, "bold"), fg="#38bdf8", bg="#0f172a")
             lbl_pick.pack(side="left", padx=4)
-            for m in moves:
+            for m in moves[:6]:  # Limit inline buttons to 6
                 btn_m = tk.Button(
                     self.human_actions_frame, text=self.format_move_text(m), font=("Segoe UI", 8),
                     bg="#1e293b", fg="#f8fafc", activebackground="#334155", activeforeground="#ffffff",
@@ -391,33 +468,36 @@ class PokemonTCGGUI:
 
     def format_move_text(self, move):
         action_type = move[0]
+        player = self.game.get_active_player()
         if action_type == 'play_pokemon':
-            card = self.game.get_active_player().hand[move[1]]
+            card = player.hand[move[1]]
             return f"Bench {card.name}"
         elif action_type == 'evolve':
-            card = self.game.get_active_player().hand[move[1]]
+            card = player.hand[move[1]]
             return f"Evolve {card.name}"
+        elif action_type == 'use_pokemon_ability':
+            return f"Ability: {move[2]}"
         elif action_type == 'play_item':
-            card = self.game.get_active_player().hand[move[1]]
+            card = player.hand[move[1]]
             return f"Item {card.name}"
         elif action_type == 'attach_tool':
-            card = self.game.get_active_player().hand[move[1]]
+            card = player.hand[move[1]]
             tgt = "Active" if move[2] == 0 else f"Bench {move[2]}"
             return f"Tool {card.name} -> {tgt}"
         elif action_type == 'play_stadium':
-            card = self.game.get_active_player().hand[move[1]]
+            card = player.hand[move[1]]
             return f"Stadium {card.name}"
         elif action_type == 'use_stadium_ability':
             return "Use Stadium"
         elif action_type == 'attach_energy':
-            card = self.game.get_active_player().hand[move[1]]
+            card = player.hand[move[1]]
             tgt = "Active" if move[2] == 0 else f"Bench {move[2]}"
             return f"Attach {card.name} -> {tgt}"
         elif action_type == 'play_supporter':
-            card = self.game.get_active_player().hand[move[1]]
+            card = player.hand[move[1]]
             return f"Use {card.name}"
         elif action_type == 'attack':
-            atk = self.game.get_active_player().active_pokemon.attacks[move[1]]
+            atk = player.active_pokemon.attacks[move[1]]
             return f"Attack: {atk['name']} ({atk['damage']}dmg)"
         elif action_type == 'retreat':
             return f"Retreat -> Bench {move[1]}"
@@ -453,8 +533,8 @@ class PokemonTCGGUI:
             chosen_move = self.greedy.choose_action(self.game, legal_moves)
             ai_name = "GreedyAI"
 
-        turn_ended = self.game.handle_action(chosen_move, verbose=False)
         formatted_txt = self.format_move_text(chosen_move)
+        turn_ended = self.game.handle_action(chosen_move, verbose=False)
         p_id = "P1" if self.game.active_player_index == 0 else "P2"
         self.last_move_label.config(text=f"{p_id} ({ai_name}) chose: {formatted_txt}")
         self.log(f"({p_id} - {ai_name}) chose: {formatted_txt}")
