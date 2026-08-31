@@ -1,16 +1,22 @@
 """
-Complete Turn-Based Pokémon TCG Simulator & AI Controllers (Standard Format Engine - Phase 2)
+Complete Turn-Based Pokémon TCG Simulator & AI Controllers (Standard Format Engine - Phase 3)
 Includes:
-- Full rule engine (GameState, Player, Card hierarchy, Turn lifecycle, Knockouts)
-- Rule Box & Multi-Prize Pokémon (ex, Tera, Mega Evolution awarding 2 or 3 prize cards)
-- Meta Archetypes: Charizard ex/Pidgeot ex, Dragapult ex, Raging Bolt ex/Teal Mask Ogerpon ex, Miraidon ex/Iron Hands ex
-- Ability Framework: Triggered On-Evolve (Infernal Reign), Activated (Quick Search, Teal Dance, Tandem Unit, Recon Directive)
-- Special Energy: Double Turbo Energy (-20 dmg, 2 Colorless), Jet Energy (on-attach auto-switch), Mist Energy
-- Multi-Target Bench Attacks (Phantom Dive), Energy Discard Scaling (Bellowing Thunder), Extra Prize Attacks (Amp You Very Much)
-- Trainer Sub-types: Items (unlimited), Tools (stat/HP modifiers), Stadiums (global field), Supporters (1/turn)
+- Full rule engine (GameState, Player, Card hierarchy, Turn lifecycle, Knockouts, Pokémon Checkup)
+- Rule Box & Multi-Prize Pokémon (ex, Tera, Ancient, Future awarding 1, 2, or 3 prize cards)
+- Complete Special Conditions Engine: Poisoned (with toxic multipliers), Burned (20 dmg + coin flip), Asleep (retreat/attack lock + coin flip), Paralyzed (retreat/attack lock + 1-turn auto-clear), Confused (coin flip on attack with 30 self-damage on tails)
+- Official ACE SPEC System (Strict 1 ACE SPEC card per deck limit): Prime Catcher, Unfair Stamp, Hero's Cape (+100 HP), Master Ball, Secret Box
+- Premier Meta Archetypes:
+  * Charizard ex / Pidgeot ex Engine (Quick Search + Infernal Reign)
+  * Dragapult ex (Recon Directive + Phantom Dive bench spread)
+  * Raging Bolt ex / Teal Mask Ogerpon ex (Teal Dance + Bellowing Thunder energy discard scaling)
+  * Miraidon ex / Iron Hands ex (Tandem Unit + Electric Generator + Amp You Very Much extra prize)
+  * Gardevoir ex / Drifloon / Scream Tail (Psychic Embrace unlimited attachment + Balloon Blast / Roaring Scream damage scaling)
+  * Terapagos ex / Noctowl / Area Zero Underdepths (Tera 8-Bench expansion + Jewel Hunt + Unified Barrage)
+  * Pecharunt ex / Munkidori / Fezandipiti ex (Subjugating Chains + Adrena-Brain damage transfer + Flip the Script KO draw)
+- Special Energy Framework: Double Turbo Energy (-20 dmg, 2 Colorless), Jet Energy (on-attach auto-switch), Mist Energy
+- Information-Set Monte Carlo Tree Search (ISMCTS with imperfect-information belief determinization) & TurnBasedGreedyAI
 - Simultaneous Multi-Knockout Resolution & Win Condition Validation
-- Baseline AI (TurnBasedGreedyAI) & Advanced Heuristic MCTS Controller (MCTSNode, MCTSController)
-- Batch simulation and post-game analytics harness (run_simulation)
+- Batch tournament simulation and post-game analytics harness (run_simulation)
 """
 
 import os
@@ -19,6 +25,7 @@ import math
 import time
 import random
 from enum import Enum, auto
+from typing import Dict, List, Optional, Tuple
 
 
 # ============================================================================
@@ -52,20 +59,30 @@ class EnergyType(Enum):
     COLORLESS = 10
 
 
+class SpecialCondition(Enum):
+    ASLEEP = "Asleep"
+    BURNED = "Burned"
+    CONFUSED = "Confused"
+    PARALYZED = "Paralyzed"
+    POISONED = "Poisoned"
+
+
 # ============================================================================
 # 2. Card Hierarchy
 # ============================================================================
 
 class Card:
-    def __init__(self, name: str, card_type: CardType):
+    def __init__(self, name: str, card_type: CardType, is_ace_spec: bool = False):
         self.name = name
         self.card_type = card_type
+        self.is_ace_spec = is_ace_spec
 
     def clone(self):
-        return Card(self.name, self.card_type)
+        return Card(self.name, self.card_type, self.is_ace_spec)
 
     def __repr__(self):
-        return f"{self.name} ({self.card_type.name})"
+        ace_str = " [ACE SPEC]" if self.is_ace_spec else ""
+        return f"{self.name}{ace_str} ({self.card_type.name})"
 
 
 class PokemonCard(Card):
@@ -83,9 +100,11 @@ class PokemonCard(Card):
         prize_yield: int = 1,
         is_rule_box: bool = False,
         tag: str = None,
-        ability: dict = None
+        ability: dict = None,
+        is_tera: bool = False,
+        is_ancient: bool = False
     ):
-        super().__init__(name, CardType.POKEMON)
+        super().__init__(name, CardType.POKEMON, is_ace_spec=False)
         self.stage = stage
         self.evolves_from = evolves_from
         self.element = element
@@ -99,21 +118,28 @@ class PokemonCard(Card):
         self.is_rule_box = is_rule_box
         self.tag = tag
         self.ability = ability
+        self.is_tera = is_tera
+        self.is_ancient = is_ancient
 
         # Dynamic in-game state
         self.damage_counters = 0
         self.attached_energy = []
         self.attached_tool = None  # Max 1 Pokémon Tool attached
-        self.special_conditions = {}
+        self.special_conditions = {}  # {SpecialCondition: {"poison_damage": 10, "turn_applied": 0}}
         self.base_card = None  # Underlying card when evolved
         self.turn_played = -1  # Turn number when card was put into play (-1 for setup)
         self.ability_used_this_turn = False
 
     def get_effective_max_hp(self) -> int:
-        """Returns max HP accounting for attached Pokémon Tool boosts (e.g. Bravery Charm +50 HP to Basic)."""
+        """Returns max HP accounting for attached Pokémon Tool boosts (e.g. Hero's Cape +100, Bravery Charm +50, Ancient Booster +60)."""
         bonus = 0
         if self.attached_tool and getattr(self.attached_tool, 'tool_hp_boost', 0) > 0:
-            if not self.attached_tool.tool_condition or self.attached_tool.tool_condition.lower() == self.stage.lower():
+            cond = self.attached_tool.tool_condition
+            if not cond:
+                bonus += self.attached_tool.tool_hp_boost
+            elif cond.lower() == "basic" and self.stage.lower() == "basic":
+                bonus += self.attached_tool.tool_hp_boost
+            elif cond.lower() == "ancient" and (self.is_ancient or self.tag == "Ancient"):
                 bonus += self.attached_tool.tool_hp_boost
         return self.max_hp + bonus
 
@@ -140,7 +166,6 @@ class PokemonCard(Card):
                 colored_pool.extend([e.energy_type] * units)
 
         cost_copy = list(cost)
-        # 1. Satisfy specific colored energy costs first
         for req in cost_copy[:]:
             if req != EnergyType.COLORLESS:
                 if req in colored_pool:
@@ -150,9 +175,49 @@ class PokemonCard(Card):
                 else:
                     return False
 
-        # 2. Satisfy remaining Colorless costs with total remaining energy units
         colorless_needed = cost_copy.count(EnergyType.COLORLESS)
         return total_units >= colorless_needed
+
+    def add_special_condition(self, condition: SpecialCondition, poison_dmg: int = 10, turn_applied: int = 0, verbose: bool = True):
+        # Prevent special conditions if Ancient Booster Energy Capsule is attached to Ancient Pokemon
+        if self.attached_tool and getattr(self.attached_tool, 'prevents_conditions', False) and (self.is_ancient or self.tag == "Ancient"):
+            if verbose:
+                print(f"  {self.name} is immune to Special Conditions due to Ancient Booster Energy Capsule!")
+            return
+
+        # Sleep, Confusion, and Paralysis overwrite each other
+        if condition in (SpecialCondition.ASLEEP, SpecialCondition.CONFUSED, SpecialCondition.PARALYZED):
+            self.special_conditions.pop(SpecialCondition.ASLEEP, None)
+            self.special_conditions.pop(SpecialCondition.CONFUSED, None)
+            self.special_conditions.pop(SpecialCondition.PARALYZED, None)
+
+        self.special_conditions[condition] = {
+            "poison_damage": poison_dmg,
+            "turn_applied": turn_applied
+        }
+        if verbose:
+            print(f"  {self.name} is now {condition.value}!")
+
+    def remove_special_condition(self, condition: SpecialCondition):
+        self.special_conditions.pop(condition, None)
+
+    def clear_special_conditions(self):
+        self.special_conditions.clear()
+
+    def is_asleep(self) -> bool:
+        return SpecialCondition.ASLEEP in self.special_conditions
+
+    def is_burned(self) -> bool:
+        return SpecialCondition.BURNED in self.special_conditions
+
+    def is_confused(self) -> bool:
+        return SpecialCondition.CONFUSED in self.special_conditions
+
+    def is_paralyzed(self) -> bool:
+        return SpecialCondition.PARALYZED in self.special_conditions
+
+    def is_poisoned(self) -> bool:
+        return SpecialCondition.POISONED in self.special_conditions
 
     def clone(self):
         cloned = PokemonCard(
@@ -168,13 +233,15 @@ class PokemonCard(Card):
             prize_yield=self.prize_yield,
             is_rule_box=self.is_rule_box,
             tag=self.tag,
-            ability=self.ability
+            ability=self.ability,
+            is_tera=self.is_tera,
+            is_ancient=self.is_ancient
         )
         cloned.damage_counters = self.damage_counters
         cloned.attached_energy = [e.clone() for e in self.attached_energy]
         if self.attached_tool:
             cloned.attached_tool = self.attached_tool.clone()
-        cloned.special_conditions = dict(self.special_conditions)
+        cloned.special_conditions = {k: dict(v) for k, v in self.special_conditions.items()}
         cloned.turn_played = self.turn_played
         cloned.ability_used_this_turn = self.ability_used_this_turn
         if self.base_card:
@@ -189,12 +256,14 @@ class TrainerCard(Card):
         trainer_type: TrainerType,
         effect_description: str,
         tag: str = None,
+        is_ace_spec: bool = False,
         tool_hp_boost: int = 0,
         tool_damage_boost: int = 0,
         tool_condition: str = None,
-        tool_target: str = None
+        tool_target: str = None,
+        prevents_conditions: bool = False
     ):
-        super().__init__(name, CardType.TRAINER)
+        super().__init__(name, CardType.TRAINER, is_ace_spec=is_ace_spec)
         self.trainer_type = trainer_type
         self.effect_description = effect_description
         self.tag = tag
@@ -202,15 +271,71 @@ class TrainerCard(Card):
         self.tool_damage_boost = tool_damage_boost
         self.tool_condition = tool_condition
         self.tool_target = tool_target
+        self.prevents_conditions = prevents_conditions
 
     def use_effect(self, game_state, player, verbose: bool = True):
         """Executes the specific trainer card effect."""
         if verbose:
-            print(f"Using {self.name}: {self.effect_description}")
+            ace_str = " [ACE SPEC]" if self.is_ace_spec else ""
+            print(f"Using {self.name}{ace_str}: {self.effect_description}")
 
         opp = game_state.get_opponent_player()
 
-        if self.name == "Professor's Research":
+        # --- ACE SPEC ITEMS ---
+        if self.name == "Prime Catcher":
+            if opp.bench and player.bench:
+                # 1. Gust opponent
+                opp_swapped = opp.bench.pop(0)
+                opp.bench.append(opp.active_pokemon)
+                opp.active_pokemon.clear_special_conditions()
+                opp.active_pokemon = opp_swapped
+
+                # 2. Switch own active
+                my_swapped = player.bench.pop(0)
+                player.bench.append(player.active_pokemon)
+                player.active_pokemon.clear_special_conditions()
+                player.active_pokemon = my_swapped
+
+                if verbose:
+                    print(f"  Prime Catcher gusted {opp_swapped.name} and switched active to {my_swapped.name}!")
+
+        elif self.name == "Unfair Stamp":
+            for p in [player, opp]:
+                p.deck.extend(p.hand)
+                p.hand = []
+                p.shuffle_deck()
+            drawn_player = player.draw_cards(5)
+            drawn_opp = opp.draw_cards(2)
+            if verbose:
+                print(f"  Unfair Stamp shuffled hands: {player.name} drew {len(drawn_player)}, {opp.name} drew {len(drawn_opp)}.")
+
+        elif self.name == "Master Ball":
+            for i, c in enumerate(player.deck):
+                if isinstance(c, PokemonCard):
+                    found = player.deck.pop(i)
+                    player.hand.append(found)
+                    if verbose:
+                        print(f"  Master Ball searched {found.name} into hand.")
+                    break
+            player.shuffle_deck()
+
+        elif self.name == "Secret Box":
+            if len(player.hand) >= 3:
+                for _ in range(3):
+                    discarded = player.hand.pop(0)
+                    player.discard_pile.append(discarded)
+                for t_type in [TrainerType.ITEM, TrainerType.TOOL, TrainerType.SUPPORTER, TrainerType.STADIUM]:
+                    for i, c in enumerate(player.deck):
+                        if isinstance(c, TrainerCard) and c.trainer_type == t_type and c.name != "Secret Box":
+                            found = player.deck.pop(i)
+                            player.hand.append(found)
+                            if verbose:
+                                print(f"  Secret Box found {found.name} ({t_type.value}).")
+                            break
+            player.shuffle_deck()
+
+        # --- STANDARD TRAINERS ---
+        elif self.name == "Professor's Research":
             player.discard_pile.extend(player.hand)
             player.hand = []
             player.draw_cards(7)
@@ -221,6 +346,7 @@ class TrainerCard(Card):
             if opp.bench:
                 swapped_in = opp.bench.pop(0)
                 opp.bench.append(opp.active_pokemon)
+                opp.active_pokemon.clear_special_conditions()
                 opp.active_pokemon = swapped_in
                 if verbose:
                     print(f"{player.name} used Boss's Orders to gust {swapped_in.name} into the Active Spot!")
@@ -229,6 +355,7 @@ class TrainerCard(Card):
             if opp.bench and len(player.prize_cards) > len(opp.prize_cards):
                 swapped_in = opp.bench.pop(0)
                 opp.bench.append(opp.active_pokemon)
+                opp.active_pokemon.clear_special_conditions()
                 opp.active_pokemon = swapped_in
                 if verbose:
                     print(f"{player.name} used Counter Catcher to gust {swapped_in.name} into the Active Spot!")
@@ -243,7 +370,7 @@ class TrainerCard(Card):
                     print(f"{p.name} shuffled hand into deck and drew {len(drawn)} cards ({len(p.prize_cards)} prizes left).")
 
         elif self.name == "Professor Sada's Vitality":
-            ancient_pokemon = [p for p in ([player.active_pokemon] + player.bench) if p and p.tag == "Ancient"]
+            ancient_pokemon = [p for p in ([player.active_pokemon] + player.bench) if p and (p.is_ancient or p.tag == "Ancient")]
             basic_energies = [c for c in player.discard_pile if isinstance(c, EnergyCard) and not getattr(c, 'is_special', False)]
             attached_count = 0
             for target in ancient_pokemon[:2]:
@@ -260,7 +387,8 @@ class TrainerCard(Card):
                     print(f"{player.name} drew {len(drawn)} cards with Professor Sada's Vitality.")
 
         elif self.name == "Nest Ball":
-            if len(player.bench) < 5:
+            max_b = player.get_max_bench_size(game_state)
+            if len(player.bench) < max_b:
                 for i, c in enumerate(player.deck):
                     if isinstance(c, PokemonCard) and c.stage == "Basic":
                         benched = player.deck.pop(i)
@@ -272,9 +400,10 @@ class TrainerCard(Card):
             player.shuffle_deck()
 
         elif self.name == "Buddy-Buddy Poffin":
+            max_b = player.get_max_bench_size(game_state)
             benched_count = 0
             for _ in range(2):
-                if len(player.bench) >= 5:
+                if len(player.bench) >= max_b:
                     break
                 for i, c in enumerate(player.deck):
                     if isinstance(c, PokemonCard) and c.stage == "Basic" and c.max_hp <= 70:
@@ -332,6 +461,7 @@ class TrainerCard(Card):
             if player.bench:
                 swapped = player.bench.pop(0)
                 player.bench.append(player.active_pokemon)
+                player.active_pokemon.clear_special_conditions()
                 player.active_pokemon = swapped
                 if verbose:
                     print(f"{player.name} used Switch: {swapped.name} is now Active.")
@@ -355,16 +485,18 @@ class TrainerCard(Card):
                             s2.attached_tool = base.attached_tool
                             s2.base_card = base
                             s2.turn_played = game_state.turn_number
+                            s2.clear_special_conditions()
                             if verbose:
                                 print(f"{player.name} used Rare Candy to evolve {base.name} directly into {s2.name}!")
                             
-                            # Trigger on-evolve abilities (e.g. Infernal Reign)
+                            # Trigger on-evolve abilities
                             if s2.ability and s2.ability.get("type") == "on_evolve":
                                 game_state.trigger_on_evolve_ability(s2, player, verbose)
                             return
 
         elif self.name == "Artazon":
-            if len(player.bench) < 5:
+            max_b = player.get_max_bench_size(game_state)
+            if len(player.bench) < max_b:
                 for i, c in enumerate(player.deck):
                     if isinstance(c, PokemonCard) and c.stage == "Basic" and not c.is_rule_box:
                         benched = player.deck.pop(i)
@@ -381,10 +513,12 @@ class TrainerCard(Card):
             trainer_type=self.trainer_type,
             effect_description=self.effect_description,
             tag=self.tag,
+            is_ace_spec=self.is_ace_spec,
             tool_hp_boost=self.tool_hp_boost,
             tool_damage_boost=self.tool_damage_boost,
             tool_condition=self.tool_condition,
-            tool_target=self.tool_target
+            tool_target=self.tool_target,
+            prevents_conditions=self.prevents_conditions
         )
 
 
@@ -399,7 +533,7 @@ class EnergyCard(Card):
         on_attach_switch: bool = False,
         effect_protection: bool = False
     ):
-        super().__init__(name, CardType.ENERGY)
+        super().__init__(name, CardType.ENERGY, is_ace_spec=False)
         self.energy_type = energy_type
         self.is_special = is_special
         self.energy_units = energy_units
@@ -452,18 +586,24 @@ class CardFactory:
 
             attacks = []
             for atk in card_info.get("attacks", []):
+                cost = [getattr(EnergyType, c.upper(), EnergyType.COLORLESS) for c in atk.get("cost", [])]
                 attacks.append({
-                    "name": atk["name"],
-                    "cost": [getattr(EnergyType, c.upper(), EnergyType.COLORLESS) for c in atk["cost"]],
-                    "damage": atk["damage"],
+                    "name": atk.get("name"),
+                    "cost": cost,
+                    "damage": atk.get("damage", 0),
                     "bench_damage": atk.get("bench_damage", 0),
                     "damage_multiplier": atk.get("damage_multiplier"),
-                    "extra_prizes": atk.get("extra_prizes", 0)
+                    "scaling_type": atk.get("scaling_type"),
+                    "extra_prizes": atk.get("extra_prizes", 0),
+                    "target_any": atk.get("target_any", False),
+                    "cures_conditions": atk.get("cures_conditions", False),
+                    "inflicts_condition": atk.get("inflicts_condition"),
+                    "poison_damage": atk.get("poison_damage", 10)
                 })
 
             return PokemonCard(
                 name=card_info["name"],
-                hp=card_info["hp"],
+                hp=card_info.get("hp", 60),
                 attacks=attacks,
                 stage=card_info.get("stage", "Basic"),
                 evolves_from=card_info.get("evolves_from"),
@@ -474,27 +614,35 @@ class CardFactory:
                 prize_yield=card_info.get("prize_yield", 1),
                 is_rule_box=card_info.get("is_rule_box", False),
                 tag=card_info.get("tag"),
-                ability=card_info.get("ability")
+                ability=card_info.get("ability"),
+                is_tera=card_info.get("is_tera", False),
+                is_ancient=card_info.get("is_ancient", False)
             )
 
         elif card_type == "Trainer":
-            t_type_str = card_info.get("trainer_type", "Item").upper()
-            trainer_type = getattr(TrainerType, t_type_str, TrainerType.ITEM)
+            t_type_str = card_info.get("trainer_type", "Item")
+            trainer_type = TrainerType(t_type_str)
+
             return TrainerCard(
                 name=card_info["name"],
                 trainer_type=trainer_type,
                 effect_description=card_info.get("effect_description", ""),
                 tag=card_info.get("tag"),
+                is_ace_spec=card_info.get("is_ace_spec", False),
                 tool_hp_boost=card_info.get("tool_hp_boost", 0),
                 tool_damage_boost=card_info.get("tool_damage_boost", 0),
                 tool_condition=card_info.get("tool_condition"),
-                tool_target=card_info.get("tool_target")
+                tool_target=card_info.get("tool_target"),
+                prevents_conditions=card_info.get("prevents_conditions", False)
             )
 
         elif card_type == "Energy":
-            is_special = (card_info.get("energy_type") == "Special")
-            energy_type_str = card_info.get("element", card_info.get("energy_type", "Colorless")).upper()
-            energy_type = getattr(EnergyType, energy_type_str, EnergyType.COLORLESS)
+            e_type_str = card_info.get("energy_type", "Colorless").upper()
+            is_special = (e_type_str == "SPECIAL")
+            if is_special:
+                energy_type = getattr(EnergyType, card_info.get("element", "Colorless").upper(), EnergyType.COLORLESS)
+            else:
+                energy_type = getattr(EnergyType, e_type_str, EnergyType.COLORLESS)
 
             return EnergyCard(
                 name=card_info["name"],
@@ -525,11 +673,25 @@ class Player:
         self.bench = []
         self.controller = controller
         self.turns_taken = 0
+        self.pokemon_ko_last_turn = False  # Tracked for Unfair Stamp & Fezandipiti ex Flip the Script
+
+        # Validate ACE SPEC rule (Max 1 ACE SPEC card per deck)
+        ace_specs = [c for c in self.deck if c.is_ace_spec]
+        if len(ace_specs) > 1:
+            raise ValueError(f"Illegal Deck: {self.name} contains {len(ace_specs)} ACE SPEC cards ({', '.join(c.name for c in ace_specs)}). Maximum allowed is 1.")
 
     def __eq__(self, other):
         if not isinstance(other, Player):
             return False
         return self.name == other.name
+
+    def get_max_bench_size(self, game_state) -> int:
+        """Standard bench size is 5; expanded to 8 if Area Zero Underdepths is active with a Tera Pokémon in play."""
+        if game_state.active_stadium and game_state.active_stadium.name == "Area Zero Underdepths":
+            has_tera = any(p and p.is_tera for p in ([self.active_pokemon] + self.bench))
+            if has_tera:
+                return 8
+        return 5
 
     def shuffle_deck(self):
         random.shuffle(self.deck)
@@ -571,6 +733,7 @@ class Player:
         cloned.active_pokemon = self.active_pokemon.clone() if self.active_pokemon else None
         cloned.bench = [b.clone() for b in self.bench]
         cloned.turns_taken = self.turns_taken
+        cloned.pokemon_ko_last_turn = self.pokemon_ko_last_turn
         return cloned
 
 
@@ -600,7 +763,7 @@ class GameState:
 
     def setup_game(self, verbose: bool = True):
         if verbose:
-            print("--- Setting up the game (Official Tournament Rules) ---")
+            print("--- Setting up the game (Official Tournament Rules - Phase 3) ---")
 
         mulligans = [0, 0]
         for idx, player in enumerate(self.players):
@@ -641,14 +804,60 @@ class GameState:
             print("-------------------------------------------------------")
 
     def pokemon_checkup(self, verbose: bool = False):
+        """Resolves between-turns Pokémon Checkup: Poison, Burn, Sleep, Paralysis auto-clear, and Ability reset."""
         for player in self.players:
-            pokemon_list = [player.active_pokemon] + player.bench
-            for p in pokemon_list:
+            in_play = [player.active_pokemon] + player.bench
+            for p in in_play:
                 if p:
                     p.ability_used_this_turn = False
 
+            # Active Pokémon Special Conditions resolution
+            active_p = player.active_pokemon
+            if active_p and active_p.special_conditions:
+                # 1. Poison
+                if active_p.is_poisoned():
+                    pois_dmg = active_p.special_conditions[SpecialCondition.POISONED].get("poison_damage", 10)
+                    active_p.apply_damage(pois_dmg, verbose)
+                    if verbose:
+                        print(f"  [Checkup] {active_p.name} took {pois_dmg} Poison damage.")
+
+                # 2. Burn
+                if active_p.is_burned():
+                    active_p.apply_damage(20, verbose)
+                    if verbose:
+                        print(f"  [Checkup] {active_p.name} took 20 Burn damage.")
+                    # Flip coin to cure Burn
+                    if random.random() < 0.5:
+                        active_p.remove_special_condition(SpecialCondition.BURNED)
+                        if verbose:
+                            print(f"  [Checkup] Coin flip Heads: {active_p.name} recovered from Burn!")
+
+                # 3. Asleep
+                if active_p.is_asleep():
+                    if random.random() < 0.5:
+                        active_p.remove_special_condition(SpecialCondition.ASLEEP)
+                        if verbose:
+                            print(f"  [Checkup] Coin flip Heads: {active_p.name} woke up from Sleep!")
+
+                # 4. Paralyzed
+                if active_p.is_paralyzed():
+                    applied_turn = active_p.special_conditions[SpecialCondition.PARALYZED].get("turn_applied", -1)
+                    if self.turn_number > applied_turn:
+                        active_p.remove_special_condition(SpecialCondition.PARALYZED)
+                        if verbose:
+                            print(f"  [Checkup] {active_p.name} is no longer Paralyzed.")
+
+        # Check for knockouts from checkup damage
+        self._handle_simultaneous_knockouts(extra_prizes_active=0, verbose=verbose)
+
     def switch_turns(self, verbose: bool = True):
-        self.get_active_player().turns_taken += 1
+        active_p = self.get_active_player()
+        active_p.turns_taken += 1
+
+        self.pokemon_checkup(verbose)
+        if self.game_over:
+            return
+
         self.active_player_index = 1 - self.active_player_index
         self.turn_number += 1
         self.supporter_played_this_turn = False
@@ -656,28 +865,31 @@ class GameState:
         self.retreated_this_turn = False
         self.stadium_played_this_turn = False
 
-        self.pokemon_checkup(verbose)
+        next_player = self.get_active_player()
+        # Reset KO flag for the starting turn player at the start of their turn
+        next_player.pokemon_ko_last_turn = False
 
-        active_player = self.get_active_player()
         if verbose:
-            print(f"\n--- Turn {self.turn_number + 1}: It is now {active_player.name}'s turn ---")
+            print(f"\n--- Turn {self.turn_number + 1}: It is now {next_player.name}'s turn ---")
 
-        drawn_cards = active_player.draw_cards(1)
+        drawn_cards = next_player.draw_cards(1)
         if not drawn_cards:
             opponent = self.get_opponent_player()
             self.winner = opponent
-            self.win_reason = f"{opponent.name} won because {active_player.name} could not draw a card (deck out)."
+            self.win_reason = f"{opponent.name} won because {next_player.name} could not draw a card (deck out)."
             self.game_over = True
             if verbose:
                 print(self.win_reason)
             return
 
         if verbose:
-            print(f"{active_player.name} drew a card.")
+            print(f"{next_player.name} drew a card.")
 
     def trigger_on_evolve_ability(self, evolved_card: PokemonCard, player: Player, verbose: bool = True):
-        """Executes on-evolve triggered abilities (e.g. Infernal Reign)."""
-        if evolved_card.ability and evolved_card.ability.get("name") == "Infernal Reign":
+        """Executes on-evolve triggered abilities (e.g. Infernal Reign, Jewel Hunt)."""
+        ab_name = evolved_card.ability.get("name") if evolved_card.ability else None
+
+        if ab_name == "Infernal Reign":
             fire_energies = [c for c in player.deck if isinstance(c, EnergyCard) and c.energy_type == EnergyType.FIRE and not getattr(c, 'is_special', False)]
             attached = 0
             targets = [player.active_pokemon] + player.bench
@@ -691,6 +903,21 @@ class GameState:
                     print(f"  Infernal Reign attached Fire Energy to {target.name}.")
             player.shuffle_deck()
 
+        elif ab_name == "Jewel Hunt":
+            has_tera = any(p and p.is_tera for p in ([player.active_pokemon] + player.bench))
+            if has_tera:
+                found_count = 0
+                for i in range(len(player.deck) - 1, -1, -1):
+                    if found_count >= 2:
+                        break
+                    c = player.deck[i]
+                    if isinstance(c, TrainerCard):
+                        player.hand.append(player.deck.pop(i))
+                        found_count += 1
+                        if verbose:
+                            print(f"  Jewel Hunt found Trainer: {c.name}.")
+                player.shuffle_deck()
+
     def get_legal_moves(self) -> list:
         if self.game_over:
             return []
@@ -699,11 +926,12 @@ class GameState:
         player = self.get_active_player()
         opponent = self.get_opponent_player()
         is_p1_turn_1 = (self.turn_number == 0)
+        max_bench = player.get_max_bench_size(self)
 
         # --- Hand Actions ---
         for i, card in enumerate(player.hand):
             if isinstance(card, PokemonCard):
-                if card.stage == "Basic" and len(player.bench) < 5:
+                if card.stage == "Basic" and len(player.bench) < max_bench:
                     moves.append(('play_pokemon', i))
                 elif card.stage in ("Stage 1", "Stage 2"):
                     if player.turns_taken >= 1:
@@ -716,6 +944,15 @@ class GameState:
                 if card.trainer_type == TrainerType.ITEM:
                     if card.name == "Counter Catcher":
                         if opponent.bench and len(player.prize_cards) > len(opponent.prize_cards):
+                            moves.append(('play_item', i))
+                    elif card.name == "Prime Catcher":
+                        if opponent.bench and player.bench:
+                            moves.append(('play_item', i))
+                    elif card.name == "Unfair Stamp":
+                        if player.pokemon_ko_last_turn:
+                            moves.append(('play_item', i))
+                    elif card.name == "Secret Box":
+                        if len(player.hand) >= 4:  # Secret Box + 3 other cards
                             moves.append(('play_item', i))
                     else:
                         moves.append(('play_item', i))
@@ -741,39 +978,72 @@ class GameState:
                         if p:
                             moves.append(('attach_energy', i, target_idx))
 
-        # --- Stadium & Ability Actions ---
+        # --- Stadium Actions ---
         if self.active_stadium and self.active_stadium.name == "Artazon" and not self.stadium_played_this_turn:
-            if len(player.bench) < 5:
+            if len(player.bench) < max_bench:
                 moves.append(('use_stadium_ability',))
 
         # --- In-Play Pokémon Activated Abilities ---
         in_play = [player.active_pokemon] + player.bench
         for target_idx, p in enumerate(in_play):
-            if p and p.ability and p.ability.get("type") == "activated" and not p.ability_used_this_turn:
+            if p and p.ability and p.ability.get("type") == "activated":
                 ab_name = p.ability.get("name")
-                if ab_name == "Teal Dance":
-                    # Requires Grass Energy in hand
-                    has_grass = any(isinstance(c, EnergyCard) and c.energy_type == EnergyType.GRASS for c in player.hand)
-                    if has_grass:
+
+                if ab_name == "Psychic Embrace":
+                    # Unlimited use: requires Psychic Energy in discard and valid Psychic Pokemon target
+                    has_psychic_e = any(isinstance(c, EnergyCard) and c.energy_type == EnergyType.PSYCHIC and not getattr(c, 'is_special', False) for c in player.discard_pile)
+                    if has_psychic_e:
+                        for attach_idx, tgt in enumerate(in_play):
+                            if tgt and tgt.element == EnergyType.PSYCHIC and (tgt.get_effective_max_hp() - tgt.damage_counters > 20):
+                                moves.append(('use_pokemon_ability', target_idx, ab_name, attach_idx))
+
+                elif not p.ability_used_this_turn:
+                    if ab_name == "Teal Dance":
+                        has_grass = any(isinstance(c, EnergyCard) and c.energy_type == EnergyType.GRASS for c in player.hand)
+                        if has_grass:
+                            moves.append(('use_pokemon_ability', target_idx, ab_name))
+                    elif ab_name == "Tandem Unit":
+                        if len(player.bench) < max_bench:
+                            moves.append(('use_pokemon_ability', target_idx, ab_name))
+                    elif ab_name == "Refinement":
+                        if len(player.hand) >= 1:
+                            moves.append(('use_pokemon_ability', target_idx, ab_name))
+                    elif ab_name == "Subjugating Chains":
+                        # Requires Darkness pokemon on bench
+                        has_dark_bench = any(b and b.element == EnergyType.DARKNESS for b in player.bench)
+                        if has_dark_bench:
+                            moves.append(('use_pokemon_ability', target_idx, ab_name))
+                    elif ab_name == "Flip the Script":
+                        if player.pokemon_ko_last_turn:
+                            moves.append(('use_pokemon_ability', target_idx, ab_name))
+                    elif ab_name == "Adrena-Brain":
+                        has_dark_e = any(e.energy_type == EnergyType.DARKNESS for e in p.attached_energy)
+                        has_friendly_dmg = any(t and t.damage_counters >= 10 for t in in_play)
+                        if has_dark_e and has_friendly_dmg:
+                            moves.append(('use_pokemon_ability', target_idx, ab_name))
+                    elif ab_name == "Toxic Powder":
+                        has_capsule = p.attached_tool and p.attached_tool.name == "Ancient Booster Energy Capsule"
+                        if has_capsule:
+                            moves.append(('use_pokemon_ability', target_idx, ab_name))
+                    else:
                         moves.append(('use_pokemon_ability', target_idx, ab_name))
-                elif ab_name == "Tandem Unit":
-                    if len(player.bench) < 5:
-                        moves.append(('use_pokemon_ability', target_idx, ab_name))
-                else:
-                    moves.append(('use_pokemon_ability', target_idx, ab_name))
 
         # --- Active Pokémon Actions ---
-        if player.active_pokemon:
-            if not is_p1_turn_1:
-                for i, attack in enumerate(player.active_pokemon.attacks):
-                    if player.active_pokemon.can_afford(attack['cost']):
+        active_p = player.active_pokemon
+        if active_p:
+            is_locked = active_p.is_asleep() or active_p.is_paralyzed()
+
+            if not is_p1_turn_1 and not is_locked:
+                for i, attack in enumerate(active_p.attacks):
+                    if active_p.can_afford(attack['cost']):
                         moves.append(('attack', i))
 
-            # Retreat
-            retreat_cost = [EnergyType.COLORLESS] * player.active_pokemon.retreat_cost
-            if len(player.bench) > 0 and not self.retreated_this_turn and player.active_pokemon.can_afford(retreat_cost):
-                for bench_idx in range(len(player.bench)):
-                    moves.append(('retreat', bench_idx))
+            # Retreat (blocked by Sleep and Paralysis)
+            if not is_locked:
+                retreat_cost = [EnergyType.COLORLESS] * active_p.retreat_cost
+                if len(player.bench) > 0 and not self.retreated_this_turn and active_p.can_afford(retreat_cost):
+                    for bench_idx in range(len(player.bench)):
+                        moves.append(('retreat', bench_idx))
 
         moves.append(('pass',))
         return moves
@@ -781,6 +1051,7 @@ class GameState:
     def handle_action(self, move: tuple, verbose: bool = True) -> bool:
         action_type = move[0]
         player = self.get_active_player()
+        opponent = self.get_opponent_player()
 
         if action_type == 'play_pokemon':
             card_idx = move[1]
@@ -802,8 +1073,12 @@ class GameState:
             tool_card = player.hand.pop(card_idx)
             target = player.active_pokemon if target_idx == 0 else player.bench[target_idx - 1]
             target.attached_tool = tool_card
+
+            if tool_card.name == "Ancient Booster Energy Capsule" and (target.is_ancient or target.tag == "Ancient"):
+                target.clear_special_conditions()
+
             if verbose:
-                print(f"{player.name} attached Pokémon Tool {tool_card.name} to {target.name} (Effective Max HP: {target.get_effective_max_hp()}).")
+                print(f"{player.name} attached Tool {tool_card.name} to {target.name} (Max HP: {target.get_effective_max_hp()}).")
             return False
 
         elif action_type == 'play_stadium':
@@ -825,7 +1100,9 @@ class GameState:
         elif action_type == 'use_pokemon_ability':
             target_idx, ab_name = move[1], move[2]
             target = player.active_pokemon if target_idx == 0 else player.bench[target_idx - 1]
-            target.ability_used_this_turn = True
+
+            if ab_name != "Psychic Embrace":
+                target.ability_used_this_turn = True
 
             if verbose:
                 print(f"{player.name} activated {target.name}'s Ability: {ab_name}!")
@@ -839,9 +1116,10 @@ class GameState:
                         print(f"  Quick Search placed {found.name} into hand.")
 
             elif ab_name == "Tandem Unit":
+                max_b = player.get_max_bench_size(self)
                 found_count = 0
                 for _ in range(2):
-                    if len(player.bench) >= 5:
+                    if len(player.bench) >= max_b:
                         break
                     for i, c in enumerate(player.deck):
                         if isinstance(c, PokemonCard) and c.stage == "Basic" and c.element == EnergyType.LIGHTNING:
@@ -859,7 +1137,7 @@ class GameState:
                     c1 = player.deck.pop(0)
                     c2 = player.deck.pop(0)
                     player.hand.append(c1)
-                    player.deck.append(c2)  # Put to bottom
+                    player.deck.append(c2)
                     if verbose:
                         print(f"  Recon Directive placed {c1.name} into hand and bottom-decked 1 card.")
                 elif len(player.deck) == 1:
@@ -875,6 +1153,65 @@ class GameState:
                         if verbose:
                             print(f"  Teal Dance attached {grass_energy.name} to {target.name} and drew {len(drawn)} card.")
                         break
+
+            elif ab_name == "Refinement":
+                if player.hand:
+                    discarded = player.hand.pop(0)
+                    player.discard_pile.append(discarded)
+                    drawn = player.draw_cards(2)
+                    if verbose:
+                        print(f"  Refinement discarded {discarded.name} and drew {len(drawn)} cards.")
+
+            elif ab_name == "Psychic Embrace":
+                attach_tgt_idx = move[3]
+                in_play = [player.active_pokemon] + player.bench
+                attach_tgt = in_play[attach_tgt_idx]
+                for i, c in enumerate(player.discard_pile):
+                    if isinstance(c, EnergyCard) and c.energy_type == EnergyType.PSYCHIC and not getattr(c, 'is_special', False):
+                        e = player.discard_pile.pop(i)
+                        attach_tgt.attached_energy.append(e)
+                        attach_tgt.damage_counters += 20
+                        if verbose:
+                            print(f"  Psychic Embrace attached {e.name} to {attach_tgt.name} (+20 self-damage: {attach_tgt.damage_counters}/{attach_tgt.get_effective_max_hp()} HP).")
+                        break
+
+            elif ab_name == "Subjugating Chains":
+                for i, b in enumerate(player.bench):
+                    if b.element == EnergyType.DARKNESS:
+                        swapped = player.bench.pop(i)
+                        player.bench.append(player.active_pokemon)
+                        player.active_pokemon.clear_special_conditions()
+                        player.active_pokemon = swapped
+                        player.active_pokemon.add_special_condition(SpecialCondition.POISONED, poison_dmg=10, turn_applied=self.turn_number, verbose=verbose)
+                        if verbose:
+                            print(f"  Subjugating Chains switched {swapped.name} to Active and Poisoned it!")
+                        break
+
+            elif ab_name == "Flip the Script":
+                drawn = player.draw_cards(3)
+                if verbose:
+                    print(f"  Flip the Script drew {len(drawn)} cards in response to last turn's KO.")
+
+            elif ab_name == "Adrena-Brain":
+                # Move 30 damage from friendly to enemy
+                in_play = [player.active_pokemon] + player.bench
+                for friendly in in_play:
+                    if friendly and friendly.damage_counters >= 30:
+                        friendly.damage_counters -= 30
+                        opp_target = opponent.active_pokemon or (opponent.bench[0] if opponent.bench else None)
+                        if opp_target:
+                            opp_target.apply_damage(30, verbose)
+                            if verbose:
+                                print(f"  Adrena-Brain moved 30 damage from {friendly.name} to {opp_target.name}!")
+                        break
+                self._handle_simultaneous_knockouts(extra_prizes_active=0, verbose=verbose)
+
+            elif ab_name == "Toxic Powder":
+                if player.active_pokemon:
+                    player.active_pokemon.add_special_condition(SpecialCondition.POISONED, poison_dmg=10, turn_applied=self.turn_number, verbose=verbose)
+                if opponent.active_pokemon:
+                    opponent.active_pokemon.add_special_condition(SpecialCondition.POISONED, poison_dmg=10, turn_applied=self.turn_number, verbose=verbose)
+
             return False
 
         elif action_type == 'play_supporter':
@@ -900,11 +1237,12 @@ class GameState:
             evolution_card.attached_tool = base_pokemon.attached_tool
             evolution_card.base_card = base_pokemon
             evolution_card.turn_played = self.turn_number
+            evolution_card.clear_special_conditions()
 
             if verbose:
                 print(f"{player.name} evolved {base_pokemon.name} into {evolution_card.name}!")
 
-            # Trigger on-evolve abilities (e.g. Infernal Reign)
+            # Trigger on-evolve abilities
             if evolution_card.ability and evolution_card.ability.get("type") == "on_evolve":
                 self.trigger_on_evolve_ability(evolution_card, player, verbose)
 
@@ -926,6 +1264,7 @@ class GameState:
                 if getattr(energy_card, 'on_attach_switch', False):
                     swapped = player.bench.pop(target_idx - 1)
                     player.bench.append(player.active_pokemon)
+                    player.active_pokemon.clear_special_conditions()
                     player.active_pokemon = swapped
                     if verbose:
                         print(f"  Jet Energy triggered! {swapped.name} switched to the Active Spot.")
@@ -945,6 +1284,7 @@ class GameState:
             del player.active_pokemon.attached_energy[:cost]
 
             promoted_pokemon = player.bench[bench_idx_to_promote]
+            player.active_pokemon.clear_special_conditions()
             player.bench[bench_idx_to_promote] = player.active_pokemon
             player.active_pokemon = promoted_pokemon
             self.retreated_this_turn = True
@@ -972,11 +1312,27 @@ class GameState:
         if not attacker or not defender:
             return
 
+        # Special Condition: Confusion Check
+        if attacker.is_confused():
+            if random.random() < 0.5:
+                # Tails: attack fails and attacker takes 30 damage
+                attacker.apply_damage(30, verbose)
+                if verbose:
+                    print(f"  Confusion check: Tails! {attacker.name} took 30 self-damage and attack failed.")
+                self._handle_simultaneous_knockouts(extra_prizes_active=0, verbose=verbose)
+                return
+            elif verbose:
+                print(f"  Confusion check: Heads! {attacker.name} attacked through Confusion.")
+
         chosen_attack = attacker.attacks[attack_idx]
         base_damage = chosen_attack['damage']
         bench_damage = chosen_attack.get('bench_damage', 0)
         damage_multiplier = chosen_attack.get('damage_multiplier')
+        scaling_type = chosen_attack.get('scaling_type')
         extra_prizes = chosen_attack.get('extra_prizes', 0)
+        target_any = chosen_attack.get('target_any', False)
+        inflicts_cond = chosen_attack.get('inflicts_condition')
+        cures_cond = chosen_attack.get('cures_conditions', False)
 
         # Dynamic Attack Scaling
         if chosen_attack['name'] == "Burning Darkness":
@@ -984,7 +1340,7 @@ class GameState:
             base_damage = 180 + (30 * prizes_taken)
 
         elif damage_multiplier == "energy_discard":
-            # Raging Bolt ex: Bellowing Thunder - discard basic energy from in-play Pokemon
+            # Raging Bolt ex: Bellowing Thunder
             in_play = [player.active_pokemon] + player.bench
             discarded_energies = 0
             for p in in_play:
@@ -997,6 +1353,19 @@ class GameState:
             base_damage = 70 * discarded_energies
             if verbose:
                 print(f"  Bellowing Thunder discarded {discarded_energies} Basic Energy -> {base_damage} DMG!")
+
+        elif scaling_type == "damage_counters":
+            # Drifloon Balloon Blast (30x) / Scream Tail Roaring Scream (20x)
+            dmg_counters_count = attacker.damage_counters // 10
+            base_damage = base_damage * dmg_counters_count
+            if verbose:
+                print(f"  {chosen_attack['name']} scaled with {dmg_counters_count} damage counters -> {base_damage} DMG!")
+
+        elif scaling_type == "bench_count":
+            # Terapagos ex Unified Barrage: 30x benched Pokemon
+            base_damage = base_damage * len(player.bench)
+            if verbose:
+                print(f"  Unified Barrage scaled with {len(player.bench)} benched Pokémon -> {base_damage} DMG!")
 
         damage = base_damage
 
@@ -1012,7 +1381,7 @@ class GameState:
                 if verbose:
                     print(f"  Tool Boost ({attacker.attached_tool.name}): +{attacker.attached_tool.tool_damage_boost} DMG!")
 
-        # Weakness & Resistance
+        # Weakness & Resistance (applied only to active attacks)
         if defender.weakness and defender.weakness == attacker.element:
             damage *= 2
             if verbose:
@@ -1026,16 +1395,28 @@ class GameState:
         if verbose:
             print(f"{attacker.name} uses {chosen_attack['name']} for {damage} total damage!")
 
-        # Apply damage to active defender
+        # Target defender (or lowest bench if target_any and active is protected)
         defender.apply_damage(damage, verbose)
 
-        # Apply bench spread damage (e.g. Phantom Dive 60 damage across opponent's bench)
+        # Bench spread damage (e.g. Phantom Dive 60 dmg)
         if bench_damage > 0 and opponent.bench:
-            # Distribute bench damage to lowest HP benched target
             target_bench = min(opponent.bench, key=lambda b: (b.get_effective_max_hp() - b.damage_counters))
             target_bench.apply_damage(bench_damage, verbose)
             if verbose:
                 print(f"  Phantom Dive dealt {bench_damage} bench damage to {target_bench.name}!")
+
+        # Inflict Special Conditions
+        if inflicts_cond:
+            cond_enum = getattr(SpecialCondition, inflicts_cond.upper(), None)
+            if cond_enum and not defender.is_knocked_out():
+                pois_d = chosen_attack.get("poison_damage", 10)
+                defender.add_special_condition(cond_enum, poison_dmg=pois_d, turn_applied=self.turn_number, verbose=verbose)
+
+        # Cure attacker conditions (e.g. Miracle Force)
+        if cures_cond:
+            attacker.clear_special_conditions()
+            if verbose:
+                print(f"  {attacker.name} recovered from all Special Conditions!")
 
         # Resolve all knockouts simultaneously
         self._handle_simultaneous_knockouts(extra_prizes, verbose)
@@ -1048,6 +1429,7 @@ class GameState:
             # 1. Check Active Pokémon
             if player.active_pokemon and player.active_pokemon.is_knocked_out():
                 defeated = player.active_pokemon
+                player.pokemon_ko_last_turn = True  # Trigger for Unfair Stamp and Flip the Script
                 rule_box_str = f" [Rule Box: {defeated.prize_yield} Prizes]" if defeated.is_rule_box else ""
                 if verbose:
                     print(f"{defeated.name}{rule_box_str} was knocked out!")
@@ -1072,6 +1454,7 @@ class GameState:
                 benched_p = player.bench[b_idx]
                 if benched_p.is_knocked_out():
                     defeated = player.bench.pop(b_idx)
+                    player.pokemon_ko_last_turn = True
                     if verbose:
                         print(f"Benched {defeated.name} was knocked out!")
 
@@ -1142,13 +1525,15 @@ class GameState:
         print(f"[{p2.name}] Deck: {len(p2.deck)} | Hand: {len(p2.hand)} | Prizes: {len(p2.prize_cards)}")
         if p2.active_pokemon:
             tool_str = f" [Tool: {p2.active_pokemon.attached_tool.name}]" if p2.active_pokemon.attached_tool else ""
-            print(f"  Active: {p2.active_pokemon.name} ({p2.active_pokemon.damage_counters}/{p2.active_pokemon.get_effective_max_hp()} HP, {len(p2.active_pokemon.attached_energy)} Energy){tool_str}")
+            cond_str = f" [Cond: {', '.join(k.value for k in p2.active_pokemon.special_conditions)}]" if p2.active_pokemon.special_conditions else ""
+            print(f"  Active: {p2.active_pokemon.name} ({p2.active_pokemon.damage_counters}/{p2.active_pokemon.get_effective_max_hp()} HP, {len(p2.active_pokemon.attached_energy)} Energy){tool_str}{cond_str}")
         print(f"  Bench: {', '.join(b.name for b in p2.bench) if p2.bench else 'Empty'}")
         print("-" * 60)
         print(f"[{p1.name}] Deck: {len(p1.deck)} | Hand: {len(p1.hand)} | Prizes: {len(p1.prize_cards)}")
         if p1.active_pokemon:
             tool_str = f" [Tool: {p1.active_pokemon.attached_tool.name}]" if p1.active_pokemon.attached_tool else ""
-            print(f"  Active: {p1.active_pokemon.name} ({p1.active_pokemon.damage_counters}/{p1.active_pokemon.get_effective_max_hp()} HP, {len(p1.active_pokemon.attached_energy)} Energy){tool_str}")
+            cond_str = f" [Cond: {', '.join(k.value for k in p1.active_pokemon.special_conditions)}]" if p1.active_pokemon.special_conditions else ""
+            print(f"  Active: {p1.active_pokemon.name} ({p1.active_pokemon.damage_counters}/{p1.active_pokemon.get_effective_max_hp()} HP, {len(p1.active_pokemon.attached_energy)} Energy){tool_str}{cond_str}")
         print(f"  Bench: {', '.join(b.name for b in p1.bench) if p1.bench else 'Empty'}")
         print(f"  Hand: {', '.join(c.name for c in p1.hand)}")
         print("=" * 60 + "\n")
@@ -1208,35 +1593,18 @@ class GameState:
 
 
 # ============================================================================
-# 5. AI Controllers (TurnBasedGreedyAI & MCTSController)
+# 5. AI Controllers (TurnBasedGreedyAI & Information-Set MCTS)
 # ============================================================================
-
-class HumanController:
-    def choose_action(self, game_state: GameState, legal_moves: list) -> tuple:
-        active_player = game_state.get_active_player()
-        print(f"It's {active_player.name}'s turn. Choose an action:")
-        for i, move in enumerate(legal_moves):
-            print(f"[{i}] {move[0].replace('_', ' ').title()}: {move[1:]}")
-
-        while True:
-            try:
-                choice = int(input("> "))
-                if 0 <= choice < len(legal_moves):
-                    return legal_moves[choice]
-            except (ValueError, IndexError):
-                pass
-            print("Invalid choice. Please enter a valid number.")
-
 
 class TurnBasedGreedyAI:
     """
-    Sequential priority AI for modern Standard format (Phase 2):
-    1. Activate In-Play Abilities (Tandem Unit, Quick Search, Teal Dance, Recon Directive).
+    Sequential priority AI for modern Standard format (Phase 3):
+    1. Activate In-Play Abilities (Psychic Embrace, Quick Search, Tandem Unit, Recon Directive, Flip the Script, Refinement, Adrena-Brain, Toxic Powder).
     2. Bench Basic Pokémon and Evolve.
     3. Attach Energy (Active first, then Bench).
     4. Attach Tools (Active first, then Bench).
     5. Play Stadium / Use Stadium Ability.
-    6. Play Item cards (Buddy-Buddy Poffin, Ultra Ball, Rare Candy, Nest Ball, Electric Generator, Super Rod).
+    6. Play Item cards (ACE SPECs, Buddy-Buddy Poffin, Ultra Ball, Rare Candy, Nest Ball, Electric Generator, Super Rod).
     7. Play Supporter cards (Professor Sada's Vitality, Professor's Research, Boss's Orders, Iono).
     8. Select highest-damage attack.
     9. Pass.
@@ -1358,14 +1726,34 @@ class MCTSNode:
 
 class MCTSController:
     """
-    Advanced Multi-Prize Aware Monte Carlo Tree Search Controller (Phase 2).
+    Advanced Information-Set Monte Carlo Tree Search Controller (Phase 3).
+    - Features Imperfect-Information Determinization: Opponent's hidden cards are randomized from the unseen distribution.
     - Sequential rollout policy executing turn development before attacking.
-    - Factors in prize acceleration, abilities, bench spread threats, and special energy.
+    - Heuristics evaluate prize velocity, special conditions, board presence, and energy acceleration.
     """
-    def __init__(self, iteration_limit: int = 400, simulation_depth: int = 16, exploration_constant: float = 1.414):
+    def __init__(self, iteration_limit: int = 300, simulation_depth: int = 16, exploration_constant: float = 1.414):
         self.iteration_limit = iteration_limit
         self.simulation_depth = simulation_depth
         self.exploration_constant = exploration_constant
+
+    def _determinize_state(self, game_state: GameState, perspective_player: Player) -> GameState:
+        """Creates a belief-state determinization where opponent's hidden cards and deck are shuffled from unseen pool."""
+        cloned = game_state.clone()
+        p_idx = cloned.players.index(perspective_player)
+        opp = cloned.players[1 - p_idx]
+
+        # Pool of unseen cards belonging to opponent
+        unseen_pool = opp.hand + opp.deck + opp.prize_cards
+        random.shuffle(unseen_pool)
+
+        hand_len = len(opp.hand)
+        prizes_len = len(opp.prize_cards)
+
+        opp.hand = unseen_pool[:hand_len]
+        opp.prize_cards = unseen_pool[hand_len:hand_len + prizes_len]
+        opp.deck = unseen_pool[hand_len + prizes_len:]
+
+        return cloned
 
     def _evaluate_state(self, game_state: GameState, perspective_player: Player) -> float:
         if game_state.game_over:
@@ -1395,7 +1783,14 @@ class MCTSController:
         if opp_player.active_pokemon and opp_player.active_pokemon.get_effective_max_hp() > 0:
             active_damage_score = opp_player.active_pokemon.damage_counters / opp_player.active_pokemon.get_effective_max_hp()
 
-        # 4. Attached Energy & Equipped Tools
+        # 4. Special Conditions Inflicted on Opponent
+        cond_score = 0.0
+        if opp_player.active_pokemon and opp_player.active_pokemon.special_conditions:
+            cond_score = 0.20
+        if my_player.active_pokemon and my_player.active_pokemon.special_conditions:
+            cond_score -= 0.15
+
+        # 5. Attached Energy & Equipped Tools
         my_energy = sum(sum(getattr(e, 'energy_units', 1) for e in p.attached_energy) for p in my_board if p)
         opp_energy = sum(sum(getattr(e, 'energy_units', 1) for e in p.attached_energy) for p in opp_board if p)
         energy_diff = (my_energy - opp_energy) / 6.0
@@ -1404,7 +1799,7 @@ class MCTSController:
         opp_tools = sum(1 for p in opp_board if p and p.attached_tool)
         tool_diff = (my_tools - opp_tools) / 6.0
 
-        # 5. Attack Readiness
+        # 6. Attack Readiness
         affordable_ratio = 0.0
         if my_player.active_pokemon and my_player.active_pokemon.attacks:
             affordable_attacks = sum(1 for atk in my_player.active_pokemon.attacks if my_player.active_pokemon.can_afford(atk['cost']))
@@ -1416,10 +1811,11 @@ class MCTSController:
             (active_damage_score * 0.25) +
             (energy_diff * 0.20) +
             (tool_diff * 0.10) +
+            (cond_score * 0.10) +
             (affordable_ratio * 0.15)
         )
 
-        return max(-1.0, min(1.0, raw_score / 1.90))
+        return max(-1.0, min(1.0, raw_score / 2.0))
 
     def _run_simulation_with_greedy_policy(self, game_state: GameState, perspective_player: Player) -> float:
         sim_game = game_state.clone()
@@ -1488,8 +1884,10 @@ class MCTSController:
         if len(legal_moves) == 1:
             return legal_moves[0]
 
-        root = MCTSNode(game_state=game_state)
         root_player = game_state.get_active_player()
+        # ISMCTS: Determinize root belief state
+        det_state = self._determinize_state(game_state, root_player)
+        root = MCTSNode(game_state=det_state)
 
         for _ in range(self.iteration_limit):
             node = root
@@ -1510,7 +1908,7 @@ class MCTSController:
         if best_child.visits > 0:
             child_player = best_child.game_state.get_active_player()
             avg_score = (best_child.total_score / best_child.visits) if child_player == root_player else -(best_child.total_score / best_child.visits)
-            print(f"    L [MCTS Stats] Visits: {best_child.visits}/{root.visits} | Win/Advantage Estimate: {avg_score:+.3f}")
+            print(f"    L [ISMCTS Stats] Visits: {best_child.visits}/{root.visits} | Win/Advantage Estimate: {avg_score:+.3f}")
 
         return best_child.move
 
@@ -1607,42 +2005,44 @@ def run_simulation(
 if __name__ == '__main__':
     factory = CardFactory('cards.json')
 
-    deck_charizard_pidgeot = (
-        ["Charmander"] * 4 +
-        ["Charmeleon"] * 1 +
-        ["Charizard ex"] * 3 +
-        ["Pidgey"] * 3 +
-        ["Pidgeot ex"] * 2 +
-        ["Rare Candy"] * 4 +
+    deck_gardevoir = (
+        ["Ralts"] * 4 +
+        ["Kirlia"] * 4 +
+        ["Gardevoir ex"] * 2 +
+        ["Drifloon"] * 2 +
+        ["Scream Tail"] * 2 +
+        ["Munkidori"] * 2 +
+        ["Fezandipiti ex"] * 1 +
+        ["Hero's Cape"] * 1 +
         ["Buddy-Buddy Poffin"] * 4 +
         ["Ultra Ball"] * 4 +
-        ["Nest Ball"] * 2 +
         ["Super Rod"] * 2 +
         ["Counter Catcher"] * 1 +
         ["Professor's Research"] * 4 +
         ["Boss's Orders"] * 2 +
         ["Iono"] * 3 +
-        ["Artazon"] * 1 +
-        ["Fire Energy"] * 16 +
-        ["Double Turbo Energy"] * 4
+        ["Psychic Energy"] * 18 +
+        ["Darkness Energy"] * 4
     )
 
-    deck_dragapult = (
-        ["Dreepy"] * 4 +
-        ["Drakloak"] * 4 +
-        ["Dragapult ex"] * 3 +
+    deck_terapagos = (
+        ["Terapagos ex"] * 3 +
+        ["Hoothoot"] * 3 +
+        ["Noctowl"] * 3 +
+        ["Fezandipiti ex"] * 1 +
+        ["Prime Catcher"] * 1 +
+        ["Area Zero Underdepths"] * 3 +
         ["Buddy-Buddy Poffin"] * 4 +
-        ["Rare Candy"] * 3 +
         ["Ultra Ball"] * 4 +
+        ["Nest Ball"] * 4 +
         ["Super Rod"] * 2 +
-        ["Counter Catcher"] * 1 +
+        ["Double Turbo Energy"] * 4 +
         ["Professor's Research"] * 4 +
         ["Boss's Orders"] * 2 +
         ["Iono"] * 3 +
-        ["Fire Energy"] * 8 +
-        ["Psychic Energy"] * 8 +
-        ["Jet Energy"] * 4 +
-        ["Mist Energy"] * 6
+        ["Grass Energy"] * 6 +
+        ["Water Energy"] * 6 +
+        ["Lightning Energy"] * 7
     )
 
     run_simulation(
@@ -1650,8 +2050,8 @@ if __name__ == '__main__':
         controller2_type=TurnBasedGreedyAI,
         num_games=10,
         card_factory=factory,
-        deck1_names=deck_charizard_pidgeot,
-        deck2_names=deck_dragapult,
-        c1_kwargs={"iteration_limit": 300, "simulation_depth": 16},
+        deck1_names=deck_gardevoir,
+        deck2_names=deck_terapagos,
+        c1_kwargs={"iteration_limit": 250, "simulation_depth": 14},
         verbose_moves=False
     )

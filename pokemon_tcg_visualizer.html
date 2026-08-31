@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>Pokémon TCG Simulator & MCTS Visualizer (Standard Format - Phase 2)</title>
+  <title>Pokémon TCG Simulator & ISMCTS Visualizer (Standard Format - Phase 3)</title>
   <script src="https://www.gstatic.com/antigravity/web/dev/tailwindcss.min.js"></script>
   <style>
     @keyframes pulse-glow {
@@ -19,6 +19,10 @@
       border: 2px solid #f59e0b;
       box-shadow: 0 0 12px rgba(245, 158, 11, 0.4);
     }
+    .ace-spec-border {
+      border: 2px solid #c084fc;
+      box-shadow: 0 0 14px rgba(192, 132, 252, 0.5);
+    }
   </style>
 </head>
 <body class="bg-slate-950 text-slate-100 antialiased min-h-screen p-4 font-sans">
@@ -27,14 +31,14 @@
     <!-- Header & Controls Bar -->
     <header class="bg-slate-900/90 backdrop-blur border border-slate-800 rounded-2xl p-4 shadow-xl flex flex-wrap items-center justify-between gap-4">
       <div class="flex items-center gap-3">
-        <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-amber-500 via-rose-500 to-indigo-500 flex items-center justify-center font-black text-xl shadow-lg">
+        <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-purple-500 via-rose-500 to-indigo-500 flex items-center justify-center font-black text-xl shadow-lg">
           ⚡
         </div>
         <div>
-          <h1 class="text-xl font-bold bg-gradient-to-r from-amber-400 via-rose-300 to-indigo-300 bg-clip-text text-transparent">
-            Pokémon TCG Engine & MCTS Visualizer
+          <h1 class="text-xl font-bold bg-gradient-to-r from-purple-400 via-rose-300 to-indigo-300 bg-clip-text text-transparent">
+            Pokémon TCG Engine & ISMCTS Visualizer
           </h1>
-          <p class="text-xs text-slate-400">Standard Format Phase 2 (Meta Archetypes, Abilities, Special Energy & Bench Spread)</p>
+          <p class="text-xs text-slate-400">Standard Format Phase 3 (Special Conditions, ACE SPECs, Tera/Gardevoir Engines & ISMCTS)</p>
         </div>
       </div>
 
@@ -42,16 +46,18 @@
       <div class="flex flex-wrap items-center gap-2">
         <div class="flex items-center bg-slate-800/80 rounded-xl p-1 border border-slate-700">
           <button id="btn-mode-ai" onclick="setMode('ai_vs_ai')" class="px-3 py-1.5 rounded-lg text-xs font-semibold bg-indigo-600 text-white shadow">
-            MCTS vs AI
+            ISMCTS vs AI
           </button>
           <button id="btn-mode-human" onclick="setMode('human_vs_ai')" class="px-3 py-1.5 rounded-lg text-xs font-semibold text-slate-400 hover:text-white">
-            Human vs MCTS
+            Human vs ISMCTS
           </button>
         </div>
 
         <div class="flex items-center gap-1 bg-slate-800/80 px-2 py-1 rounded-xl border border-slate-700 text-xs">
           <span class="text-slate-400 text-[10px]">P1:</span>
           <select id="p1-deck-select" onchange="startNewGame()" class="bg-slate-900 text-slate-200 text-[11px] rounded px-1.5 py-0.5 border border-slate-700">
+            <option value="gardevoir">Gardevoir ex / Drifloon</option>
+            <option value="terapagos">Terapagos ex / Noctowl</option>
             <option value="charizard">Charizard ex / Pidgeot ex</option>
             <option value="dragapult">Dragapult ex</option>
             <option value="raging_bolt">Raging Bolt ex / Ogerpon ex</option>
@@ -62,8 +68,10 @@
         <div class="flex items-center gap-1 bg-slate-800/80 px-2 py-1 rounded-xl border border-slate-700 text-xs">
           <span class="text-slate-400 text-[10px]">P2:</span>
           <select id="p2-deck-select" onchange="startNewGame()" class="bg-slate-900 text-slate-200 text-[11px] rounded px-1.5 py-0.5 border border-slate-700">
-            <option value="dragapult">Dragapult ex</option>
+            <option value="terapagos">Terapagos ex / Noctowl</option>
+            <option value="gardevoir">Gardevoir ex / Drifloon</option>
             <option value="charizard">Charizard ex / Pidgeot ex</option>
+            <option value="dragapult">Dragapult ex</option>
             <option value="raging_bolt">Raging Bolt ex / Ogerpon ex</option>
             <option value="miraidon">Miraidon ex / Iron Hands ex</option>
           </select>
@@ -102,14 +110,14 @@
             <div class="flex items-center gap-3 text-xs text-slate-400">
               <span>Deck: <b id="p2-deck-count" class="text-slate-200">0</b></span>
               <span>Hand: <b id="p2-hand-count" class="text-slate-200">0</b></span>
-              <span>Prizes Remaining: <b id="p2-prize-count" class="text-amber-400 font-bold">6</b></span>
+              <span>Prizes: <b id="p2-prize-count" class="text-amber-400 font-bold">6</b></span>
             </div>
           </div>
 
           <!-- P2 Bench -->
           <div class="mb-3">
-            <div class="text-[10px] uppercase font-bold tracking-wider text-slate-500 mb-1">Bench (Max 5)</div>
-            <div id="p2-bench-container" class="grid grid-cols-5 gap-2 min-h-[90px]">
+            <div class="text-[10px] uppercase font-bold tracking-wider text-slate-500 mb-1" id="p2-bench-header">Bench (Max 5)</div>
+            <div id="p2-bench-container" class="grid grid-cols-5 md:grid-cols-8 gap-2 min-h-[90px]">
               <!-- Bench cards injected here -->
             </div>
           </div>
@@ -137,7 +145,7 @@
           </div>
         </div>
 
-        <!-- Player 1 (MCTS Controller / User) -->
+        <!-- Player 1 (ISMCTS Controller / User) -->
         <div id="p1-board" class="bg-slate-900/80 border border-slate-800/90 rounded-2xl p-4 shadow-lg relative overflow-hidden transition-all duration-300">
           <div class="flex justify-center my-2">
             <div id="p1-active-container" class="w-80">
@@ -147,8 +155,8 @@
 
           <!-- P1 Bench -->
           <div class="mb-3">
-            <div class="text-[10px] uppercase font-bold tracking-wider text-slate-500 mb-1">Bench (Max 5)</div>
-            <div id="p1-bench-container" class="grid grid-cols-5 gap-2 min-h-[90px]">
+            <div class="text-[10px] uppercase font-bold tracking-wider text-slate-500 mb-1" id="p1-bench-header">Bench (Max 5)</div>
+            <div id="p1-bench-container" class="grid grid-cols-5 md:grid-cols-8 gap-2 min-h-[90px]">
               <!-- Bench cards injected here -->
             </div>
           </div>
@@ -158,12 +166,12 @@
             <div class="flex items-center justify-between mb-2">
               <div class="flex items-center gap-2">
                 <span id="p1-turn-badge" class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-indigo-500/20 text-indigo-300 border border-indigo-500/30">ACTIVE TURN</span>
-                <h2 id="p1-name" class="font-bold text-sm text-indigo-400">Player 1 (MCTS AI)</h2>
+                <h2 id="p1-name" class="font-bold text-sm text-indigo-400">Player 1 (ISMCTS AI)</h2>
               </div>
               <div class="flex items-center gap-3 text-xs text-slate-400">
                 <span>Deck: <b id="p1-deck-count" class="text-slate-200">0</b></span>
                 <span>Hand: <b id="p1-hand-count" class="text-slate-200">0</b></span>
-                <span>Prizes Remaining: <b id="p1-prize-count" class="text-amber-400 font-bold">6</b></span>
+                <span>Prizes: <b id="p1-prize-count" class="text-amber-400 font-bold">6</b></span>
               </div>
             </div>
 
@@ -175,14 +183,14 @@
         </div>
       </section>
 
-      <!-- Right Column: MCTS Telemetry & Live Play-by-Play -->
+      <!-- Right Column: ISMCTS Telemetry & Live Play-by-Play -->
       <aside class="space-y-4">
         
-        <!-- MCTS Advantage & Heuristic Metrics Card -->
+        <!-- ISMCTS Advantage & Heuristic Metrics Card -->
         <div class="bg-slate-900/90 border border-slate-800 rounded-2xl p-4 shadow-xl space-y-3">
           <div class="flex items-center justify-between border-b border-slate-800 pb-2">
             <h3 class="text-xs font-bold uppercase tracking-wider text-slate-400 flex items-center gap-1.5">
-              <span>🧠</span> MCTS Heuristics & Search
+              <span>🧠</span> ISMCTS Heuristics & Search
             </h3>
             <span id="mcts-visits-badge" class="text-[10px] px-2 py-0.5 rounded bg-indigo-950 text-indigo-300 border border-indigo-800">
               Sims: 300
@@ -192,7 +200,7 @@
           <!-- Live Advantage Meter -->
           <div>
             <div class="flex justify-between text-xs mb-1">
-              <span class="text-slate-400">Estimated Win Advantage</span>
+              <span class="text-slate-400">Belief-State Advantage</span>
               <span id="mcts-score-value" class="font-mono font-bold text-emerald-400">+0.00</span>
             </div>
             <div class="w-full h-2.5 bg-slate-800 rounded-full overflow-hidden flex border border-slate-700">
@@ -217,12 +225,12 @@
               <div id="metric-board" class="font-bold text-blue-400 text-sm">0 diff</div>
             </div>
             <div class="bg-slate-950/60 p-2 rounded-lg border border-slate-800/80">
-              <div class="text-[10px] text-slate-400">Active Damage Dealt</div>
+              <div class="text-[10px] text-slate-400">Active Damage</div>
               <div id="metric-damage" class="font-bold text-rose-400 text-sm">0 / 0 HP</div>
             </div>
             <div class="bg-slate-950/60 p-2 rounded-lg border border-slate-800/80">
-              <div class="text-[10px] text-slate-400">Energy & Tools</div>
-              <div id="metric-energy" class="font-bold text-emerald-400 text-sm">0 total</div>
+              <div class="text-[10px] text-slate-400">Opp Conditions</div>
+              <div id="metric-conditions" class="font-bold text-purple-400 text-sm">None</div>
             </div>
           </div>
         </div>
@@ -245,18 +253,35 @@
 
   <script>
     const CARD_DATABASE = {
-      "Charmander": { type: "Pokemon", stage: "Basic", hp: 70, prize_yield: 1, is_ex: false, attacks: [{ name: "Scratch", cost: ["Colorless"], dmg: 10 }, { name: "Ember", cost: ["Fire", "Colorless"], dmg: 30 }], retreat: 1, element: "Fire", weakness: "Water" },
-      "Charmeleon": { type: "Pokemon", stage: "Stage 1", evolves_from: "Charmander", hp: 90, prize_yield: 1, is_ex: false, attacks: [{ name: "Slash", cost: ["Colorless", "Colorless"], dmg: 40 }], retreat: 2, element: "Fire", weakness: "Water" },
-      "Charizard ex": { type: "Pokemon", stage: "Stage 2", evolves_from: "Charmeleon", hp: 330, prize_yield: 2, is_ex: true, ability: { name: "Infernal Reign" }, attacks: [{ name: "Burning Darkness", cost: ["Fire", "Fire"], dmg: 180 }], retreat: 2, element: "Fire", weakness: "Water" },
-      "Pidgey": { type: "Pokemon", stage: "Basic", hp: 60, prize_yield: 1, is_ex: false, attacks: [{ name: "Gust", cost: ["Colorless"], dmg: 10 }], retreat: 1, element: "Colorless", weakness: "Lightning" },
-      "Pidgeot ex": { type: "Pokemon", stage: "Stage 2", evolves_from: "Pidgeotto", hp: 280, prize_yield: 2, is_ex: true, ability: { name: "Quick Search" }, attacks: [{ name: "Blistering Wind", cost: ["Colorless", "Colorless"], dmg: 120 }], retreat: 0, element: "Colorless", weakness: "Lightning" },
+      "Ralts": { type: "Pokemon", stage: "Basic", hp: 70, prize_yield: 1, is_ex: false, attacks: [{ name: "Memory Skip", cost: ["Psychic"], dmg: 10 }], retreat: 1, element: "Psychic" },
+      "Kirlia": { type: "Pokemon", stage: "Stage 1", evolves_from: "Ralts", hp: 80, prize_yield: 1, is_ex: false, ability: { name: "Refinement" }, attacks: [{ name: "Slap", cost: ["Psychic", "Colorless"], dmg: 30 }], retreat: 2, element: "Psychic" },
+      "Gardevoir ex": { type: "Pokemon", stage: "Stage 2", evolves_from: "Kirlia", hp: 310, prize_yield: 2, is_ex: true, ability: { name: "Psychic Embrace" }, attacks: [{ name: "Miracle Force", cost: ["Psychic", "Psychic", "Colorless"], dmg: 190, cures_conditions: true }], retreat: 2, element: "Psychic" },
+      "Drifloon": { type: "Pokemon", stage: "Basic", hp: 70, prize_yield: 1, is_ex: false, attacks: [{ name: "Balloon Blast", cost: ["Colorless", "Colorless"], dmg: 30, scaling_type: "damage_counters" }], retreat: 1, element: "Psychic" },
+      "Scream Tail": { type: "Pokemon", stage: "Basic", hp: 90, prize_yield: 1, is_ex: false, is_ancient: true, attacks: [{ name: "Roaring Scream", cost: ["Psychic", "Colorless"], dmg: 20, scaling_type: "damage_counters" }], retreat: 1, element: "Psychic" },
+      "Hoothoot": { type: "Pokemon", stage: "Basic", hp: 70, prize_yield: 1, is_ex: false, attacks: [{ name: "Peck", cost: ["Colorless"], dmg: 10 }], retreat: 1, element: "Colorless" },
+      "Noctowl": { type: "Pokemon", stage: "Stage 1", evolves_from: "Hoothoot", hp: 100, prize_yield: 1, is_ex: false, ability: { name: "Jewel Hunt" }, attacks: [{ name: "Speed Wing", cost: ["Colorless", "Colorless", "Colorless"], dmg: 60 }], retreat: 1, element: "Colorless" },
+      "Terapagos ex": { type: "Pokemon", stage: "Basic", hp: 230, prize_yield: 2, is_ex: true, is_tera: true, attacks: [{ name: "Unified Barrage", cost: ["Colorless", "Colorless"], dmg: 30, scaling_type: "bench_count" }, { name: "Crown Opal", cost: ["Grass", "Water", "Lightning"], dmg: 180 }], retreat: 2, element: "Colorless" },
+      "Area Zero Underdepths": { type: "Trainer", trainer_type: "Stadium", desc: "If you have a Tera Pokémon, Bench max is 8." },
+      "Pecharunt ex": { type: "Pokemon", stage: "Basic", hp: 190, prize_yield: 2, is_ex: true, ability: { name: "Subjugating Chains" }, attacks: [{ name: "Irritating Poison", cost: ["Darkness", "Darkness"], dmg: 60, inflicts_condition: "Poisoned", poison_damage: 50 }], retreat: 1, element: "Darkness" },
+      "Fezandipiti ex": { type: "Pokemon", stage: "Basic", hp: 210, prize_yield: 2, is_ex: true, ability: { name: "Flip the Script" }, attacks: [{ name: "Cruel Arrow", cost: ["Colorless", "Colorless", "Colorless"], dmg: 100 }], retreat: 1, element: "Psychic" },
+      "Munkidori": { type: "Pokemon", stage: "Basic", hp: 110, prize_yield: 1, is_ex: false, ability: { name: "Adrena-Brain" }, attacks: [{ name: "Mind Bend", cost: ["Psychic", "Colorless"], dmg: 60, inflicts_condition: "Confused" }], retreat: 1, element: "Psychic" },
+      "Hero's Cape": { type: "Trainer", trainer_type: "Tool", is_ace_spec: true, tool_hp_boost: 100, desc: "ACE SPEC: Attached Pokémon gets +100 HP." },
+      "Prime Catcher": { type: "Trainer", trainer_type: "Item", is_ace_spec: true, desc: "ACE SPEC: Gust opponent and switch active." },
+      "Unfair Stamp": { type: "Trainer", trainer_type: "Item", is_ace_spec: true, desc: "ACE SPEC: Reshuffle hands: you 5, opp 2." },
+      "Master Ball": { type: "Trainer", trainer_type: "Item", is_ace_spec: true, desc: "ACE SPEC: Search any 1 Pokémon." },
+      "Secret Box": { type: "Trainer", trainer_type: "Item", is_ace_spec: true, desc: "ACE SPEC: Discard 3: search Item, Tool, Supporter, Stadium." },
+      "Charmander": { type: "Pokemon", stage: "Basic", hp: 70, prize_yield: 1, is_ex: false, attacks: [{ name: "Scratch", cost: ["Colorless"], dmg: 10 }, { name: "Ember", cost: ["Fire", "Colorless"], dmg: 30 }], retreat: 1, element: "Fire" },
+      "Charmeleon": { type: "Pokemon", stage: "Stage 1", evolves_from: "Charmander", hp: 90, prize_yield: 1, is_ex: false, attacks: [{ name: "Slash", cost: ["Colorless", "Colorless"], dmg: 40 }], retreat: 2, element: "Fire" },
+      "Charizard ex": { type: "Pokemon", stage: "Stage 2", evolves_from: "Charmeleon", hp: 330, prize_yield: 2, is_ex: true, ability: { name: "Infernal Reign" }, attacks: [{ name: "Burning Darkness", cost: ["Fire", "Fire"], dmg: 180 }], retreat: 2, element: "Fire" },
+      "Pidgey": { type: "Pokemon", stage: "Basic", hp: 60, prize_yield: 1, is_ex: false, attacks: [{ name: "Gust", cost: ["Colorless"], dmg: 10 }], retreat: 1, element: "Colorless" },
+      "Pidgeot ex": { type: "Pokemon", stage: "Stage 2", evolves_from: "Pidgeotto", hp: 280, prize_yield: 2, is_ex: true, ability: { name: "Quick Search" }, attacks: [{ name: "Blistering Wind", cost: ["Colorless", "Colorless"], dmg: 120 }], retreat: 0, element: "Colorless" },
       "Dreepy": { type: "Pokemon", stage: "Basic", hp: 60, prize_yield: 1, is_ex: false, attacks: [{ name: "Bite", cost: ["Psychic"], dmg: 10 }], retreat: 1, element: "Dragon" },
       "Drakloak": { type: "Pokemon", stage: "Stage 1", evolves_from: "Dreepy", hp: 90, prize_yield: 1, is_ex: false, ability: { name: "Recon Directive" }, attacks: [{ name: "Dragon Headbutt", cost: ["Fire", "Psychic"], dmg: 70 }], retreat: 1, element: "Dragon" },
       "Dragapult ex": { type: "Pokemon", stage: "Stage 2", evolves_from: "Drakloak", hp: 320, prize_yield: 2, is_ex: true, attacks: [{ name: "Phantom Dive", cost: ["Fire", "Psychic"], dmg: 200, bench_dmg: 60 }], retreat: 1, element: "Dragon" },
-      "Teal Mask Ogerpon ex": { type: "Pokemon", stage: "Basic", hp: 210, prize_yield: 2, is_ex: true, ability: { name: "Teal Dance" }, attacks: [{ name: "Myriad Leaf Shower", cost: ["Grass", "Colorless", "Colorless"], dmg: 140 }], retreat: 1, element: "Grass", weakness: "Fire" },
+      "Teal Mask Ogerpon ex": { type: "Pokemon", stage: "Basic", hp: 210, prize_yield: 2, is_ex: true, ability: { name: "Teal Dance" }, attacks: [{ name: "Myriad Leaf Shower", cost: ["Grass", "Colorless", "Colorless"], dmg: 140 }], retreat: 1, element: "Grass" },
       "Raging Bolt ex": { type: "Pokemon", stage: "Basic", hp: 240, prize_yield: 2, is_ex: true, attacks: [{ name: "Bellowing Thunder", cost: ["Lightning", "Fighting"], dmg: 70, is_scaling: true }], retreat: 3, element: "Dragon" },
-      "Miraidon ex": { type: "Pokemon", stage: "Basic", hp: 220, prize_yield: 2, is_ex: true, ability: { name: "Tandem Unit" }, attacks: [{ name: "Photon Blaster", cost: ["Lightning", "Lightning", "Colorless"], dmg: 220 }], retreat: 1, element: "Lightning", weakness: "Fighting" },
-      "Iron Hands ex": { type: "Pokemon", stage: "Basic", hp: 230, prize_yield: 2, is_ex: true, attacks: [{ name: "Amp You Very Much", cost: ["Lightning", "Colorless", "Colorless", "Colorless"], dmg: 120, extra_prizes: 1 }], retreat: 4, element: "Lightning", weakness: "Fighting" },
+      "Miraidon ex": { type: "Pokemon", stage: "Basic", hp: 220, prize_yield: 2, is_ex: true, ability: { name: "Tandem Unit" }, attacks: [{ name: "Photon Blaster", cost: ["Lightning", "Lightning", "Colorless"], dmg: 220 }], retreat: 1, element: "Lightning" },
+      "Iron Hands ex": { type: "Pokemon", stage: "Basic", hp: 230, prize_yield: 2, is_ex: true, attacks: [{ name: "Amp You Very Much", cost: ["Lightning", "Colorless", "Colorless", "Colorless"], dmg: 120, extra_prizes: 1 }], retreat: 4, element: "Lightning" },
       "Professor's Research": { type: "Trainer", trainer_type: "Supporter", desc: "Discard hand and draw 7 cards." },
       "Boss's Orders": { type: "Trainer", trainer_type: "Supporter", desc: "Switch in 1 opponent's bench to Active." },
       "Professor Sada's Vitality": { type: "Trainer", trainer_type: "Supporter", desc: "Attach Basic Energy from discard to 2 Ancient, draw 3." },
@@ -270,8 +295,6 @@
       "Switch": { type: "Trainer", trainer_type: "Item", desc: "Switch Active with Bench." },
       "Rare Candy": { type: "Trainer", trainer_type: "Item", desc: "Evolve Basic directly to Stage 2." },
       "Bravery Charm": { type: "Trainer", trainer_type: "Tool", tool_hp_boost: 50, tool_condition: "Basic", desc: "Basic gets +50 HP." },
-      "Maximum Belt": { type: "Trainer", trainer_type: "Tool", tool_damage_boost: 50, tool_target: "ex", desc: "Attacks deal +50 damage to Pokémon ex." },
-      "Artazon": { type: "Trainer", trainer_type: "Stadium", desc: "Once per turn, search a Basic without Rule Box." },
       "Double Turbo Energy": { type: "Energy", is_special: true, energy_units: 2, damage_mod: -20, element: "Colorless" },
       "Jet Energy": { type: "Energy", is_special: true, energy_units: 1, on_attach_switch: true, element: "Colorless" },
       "Mist Energy": { type: "Energy", is_special: true, energy_units: 1, element: "Colorless" },
@@ -279,38 +302,55 @@
       "Psychic Energy": { type: "Energy", element: "Psychic" },
       "Grass Energy": { type: "Energy", element: "Grass" },
       "Lightning Energy": { type: "Energy", element: "Lightning" },
-      "Fighting Energy": { type: "Energy", element: "Fighting" }
+      "Fighting Energy": { type: "Energy", element: "Fighting" },
+      "Darkness Energy": { type: "Energy", element: "Darkness" }
     };
 
     const DECK_PRESETS = {
+      "gardevoir": [
+        ...Array(4).fill("Ralts"), ...Array(4).fill("Kirlia"), ...Array(2).fill("Gardevoir ex"),
+        ...Array(2).fill("Drifloon"), ...Array(2).fill("Scream Tail"), ...Array(2).fill("Munkidori"),
+        "Fezandipiti ex", "Hero's Cape", ...Array(4).fill("Buddy-Buddy Poffin"), ...Array(4).fill("Ultra Ball"),
+        ...Array(2).fill("Super Rod"), "Counter Catcher", ...Array(4).fill("Professor's Research"),
+        ...Array(2).fill("Boss's Orders"), ...Array(3).fill("Iono"),
+        ...Array(18).fill("Psychic Energy"), ...Array(4).fill("Darkness Energy")
+      ],
+      "terapagos": [
+        ...Array(3).fill("Terapagos ex"), ...Array(3).fill("Hoothoot"), ...Array(3).fill("Noctowl"),
+        "Fezandipiti ex", "Prime Catcher", ...Array(3).fill("Area Zero Underdepths"),
+        ...Array(4).fill("Buddy-Buddy Poffin"), ...Array(4).fill("Ultra Ball"), ...Array(4).fill("Nest Ball"),
+        ...Array(2).fill("Super Rod"), ...Array(4).fill("Double Turbo Energy"), ...Array(4).fill("Professor's Research"),
+        ...Array(2).fill("Boss's Orders"), ...Array(3).fill("Iono"),
+        ...Array(6).fill("Grass Energy"), ...Array(6).fill("Lightning Energy"), ...Array(7).fill("Fighting Energy")
+      ],
       "charizard": [
         ...Array(4).fill("Charmander"), "Charmeleon", ...Array(3).fill("Charizard ex"),
-        ...Array(3).fill("Pidgey"), ...Array(2).fill("Pidgeot ex"), ...Array(4).fill("Rare Candy"),
+        ...Array(3).fill("Pidgey"), ...Array(2).fill("Pidgeot ex"), "Unfair Stamp", ...Array(4).fill("Rare Candy"),
         ...Array(4).fill("Buddy-Buddy Poffin"), ...Array(4).fill("Ultra Ball"), ...Array(2).fill("Nest Ball"),
         ...Array(2).fill("Super Rod"), "Counter Catcher", ...Array(4).fill("Professor's Research"),
-        ...Array(2).fill("Boss's Orders"), ...Array(3).fill("Iono"), "Artazon",
-        ...Array(16).fill("Fire Energy"), ...Array(4).fill("Double Turbo Energy")
+        ...Array(2).fill("Boss's Orders"), ...Array(3).fill("Iono"),
+        ...Array(15).fill("Fire Energy"), ...Array(4).fill("Double Turbo Energy")
       ],
       "dragapult": [
-        ...Array(4).fill("Dreepy"), ...Array(4).fill("Drakloak"), ...Array(3).fill("Dragapult ex"),
+        ...Array(4).fill("Dreepy"), ...Array(4).fill("Drakloak"), ...Array(3).fill("Dragapult ex"), "Prime Catcher",
         ...Array(4).fill("Buddy-Buddy Poffin"), ...Array(3).fill("Rare Candy"), ...Array(4).fill("Ultra Ball"),
         ...Array(2).fill("Super Rod"), "Counter Catcher", ...Array(4).fill("Professor's Research"),
         ...Array(2).fill("Boss's Orders"), ...Array(3).fill("Iono"),
-        ...Array(8).fill("Fire Energy"), ...Array(8).fill("Psychic Energy"), ...Array(4).fill("Jet Energy"), ...Array(6).fill("Mist Energy")
+        ...Array(8).fill("Fire Energy"), ...Array(8).fill("Psychic Energy"), ...Array(4).fill("Jet Energy"), ...Array(5).fill("Mist Energy")
       ],
       "raging_bolt": [
-        ...Array(4).fill("Raging Bolt ex"), ...Array(4).fill("Teal Mask Ogerpon ex"),
+        ...Array(4).fill("Raging Bolt ex"), ...Array(4).fill("Teal Mask Ogerpon ex"), "Prime Catcher",
         ...Array(4).fill("Professor Sada's Vitality"), ...Array(4).fill("Nest Ball"), ...Array(4).fill("Ultra Ball"),
         ...Array(2).fill("Super Rod"), ...Array(3).fill("Bravery Charm"), ...Array(4).fill("Professor's Research"),
         ...Array(2).fill("Boss's Orders"), ...Array(3).fill("Iono"),
-        ...Array(14).fill("Grass Energy"), ...Array(6).fill("Lightning Energy"), ...Array(6).fill("Fighting Energy")
+        ...Array(13).fill("Grass Energy"), ...Array(6).fill("Lightning Energy"), ...Array(6).fill("Fighting Energy")
       ],
       "miraidon": [
-        ...Array(3).fill("Miraidon ex"), ...Array(3).fill("Iron Hands ex"),
+        ...Array(3).fill("Miraidon ex"), ...Array(3).fill("Iron Hands ex"), ...Array(2).fill("Pikachu ex"), "Prime Catcher",
         ...Array(4).fill("Electric Generator"), ...Array(4).fill("Nest Ball"), ...Array(4).fill("Ultra Ball"),
         ...Array(2).fill("Super Rod"), ...Array(2).fill("Bravery Charm"), ...Array(4).fill("Double Turbo Energy"),
         ...Array(4).fill("Professor's Research"), ...Array(2).fill("Boss's Orders"), ...Array(2).fill("Iono"),
-        ...Array(24).fill("Lightning Energy")
+        ...Array(23).fill("Lightning Energy")
       ]
     };
 
@@ -331,16 +371,15 @@
         this.max_hp = data.hp;
         this.prize_yield = data.prize_yield || 1;
         this.is_ex = data.is_ex || false;
+        this.is_tera = data.is_tera || false;
+        this.is_ancient = data.is_ancient || false;
+        this.is_ace_spec = data.is_ace_spec || false;
         this.ability = data.ability;
         this.tool_hp_boost = data.tool_hp_boost || 0;
-        this.tool_damage_boost = data.tool_damage_boost || 0;
-        this.tool_condition = data.tool_condition;
-        this.tool_target = data.tool_target;
         this.desc = data.desc;
         this.attacks = data.attacks ? JSON.parse(JSON.stringify(data.attacks)) : [];
         this.retreat = data.retreat || 0;
         this.element = data.element;
-        this.weakness = data.weakness;
         this.is_special = data.is_special || false;
         this.energy_units = data.energy_units || 1;
         this.damage_mod = data.damage_mod || 0;
@@ -348,17 +387,14 @@
         this.damage_counters = 0;
         this.attached_energy = [];
         this.attached_tool = null;
+        this.special_conditions = [];
         this.base_card = null;
         this.turn_played = -1;
         this.ability_used = false;
       }
       getEffectiveMaxHp() {
         let bonus = 0;
-        if (this.attached_tool && this.attached_tool.tool_hp_boost > 0) {
-          if (!this.attached_tool.tool_condition || this.attached_tool.tool_condition.toLowerCase() === this.stage.toLowerCase()) {
-            bonus += this.attached_tool.tool_hp_boost;
-          }
-        }
+        if (this.attached_tool && this.attached_tool.tool_hp_boost > 0) bonus += this.attached_tool.tool_hp_boost;
         return this.max_hp + bonus;
       }
       canAfford(cost) {
@@ -395,6 +431,13 @@
           }
         }
         return drawn;
+      }
+      getMaxBench() {
+        if (gameState && gameState.activeStadium && gameState.activeStadium.name === "Area Zero Underdepths") {
+          const hasTera = [this.active, ...this.bench].some(p => p && p.is_tera);
+          if (hasTera) return 8;
+        }
+        return 5;
       }
     }
 
@@ -439,19 +482,26 @@
       if (state.gameOver) return [];
       const moves = [];
       const player = state.players[state.activePlayerIdx];
+      const opp = state.players[1 - state.activePlayerIdx];
       const isP1Turn1 = (state.turnNumber === 1);
+      const maxBench = player.getMaxBench();
 
       // Abilities
       const inPlay = [player.active, ...player.bench].filter(Boolean);
       inPlay.forEach((p, idx) => {
-        if (p.ability && !p.ability_used) {
-          moves.push({ type: 'ability', targetIdx: idx, name: p.ability.name });
+        if (p.ability) {
+          if (p.ability.name === "Psychic Embrace") {
+            const hasPsychic = player.discard_pile.some(c => c.element === "Psychic");
+            if (hasPsychic) moves.push({ type: 'ability', targetIdx: idx, name: "Psychic Embrace" });
+          } else if (!p.ability_used) {
+            moves.push({ type: 'ability', targetIdx: idx, name: p.ability.name });
+          }
         }
       });
 
       player.hand.forEach((card, idx) => {
         if (card.type === "Pokemon") {
-          if (card.stage === "Basic" && player.bench.length < 5) {
+          if (card.stage === "Basic" && player.bench.length < maxBench) {
             moves.push({ type: 'play_pokemon', cardIdx: idx, name: card.name });
           } else if (card.stage in { "Stage 1": 1, "Stage 2": 1 }) {
             if (player.turns_taken >= 1) {
@@ -481,7 +531,7 @@
         }
       });
 
-      if (player.active && !isP1Turn1) {
+      if (player.active && !isP1Turn1 && !player.active.special_conditions.includes("Asleep") && !player.active.special_conditions.includes("Paralyzed")) {
         player.active.attacks.forEach((atk, atkIdx) => {
           if (player.active.canAfford(atk.cost)) {
             moves.push({ type: 'attack', attackIdx: atkIdx, name: atk.name, dmg: atk.dmg });
@@ -499,19 +549,26 @@
 
       if (move.type === 'ability') {
         const target = move.targetIdx === 0 ? player.active : player.bench[move.targetIdx - 1];
-        target.ability_used = true;
+        if (move.name !== "Psychic Embrace") target.ability_used = true;
         appendLog(`[${player.name}] Activated Ability: ${move.name}!`);
-        if (move.name === "Quick Search") player.draw(1);
+
+        if (move.name === "Psychic Embrace") {
+          const eIdx = player.discard_pile.findIndex(c => c.element === "Psychic");
+          if (eIdx !== -1) {
+            target.attached_energy.push(player.discard_pile.splice(eIdx, 1)[0]);
+            target.damage_counters += 20;
+            appendLog(`  -> Psychic Embrace attached Psychic Energy to ${target.name} (+20 self-damage).`);
+          }
+        } else if (move.name === "Quick Search") player.draw(1);
         else if (move.name === "Teal Dance") {
           const grassIdx = player.hand.findIndex(c => c.element === "Grass");
           if (grassIdx !== -1) {
             target.attached_energy.push(player.hand.splice(grassIdx, 1)[0]);
             player.draw(1);
           }
-        }
-        else if (move.name === "Tandem Unit") {
+        } else if (move.name === "Tandem Unit") {
           for (let i = player.deck.length - 1; i >= 0; i--) {
-            if (player.deck[i].element === "Lightning" && player.deck[i].stage === "Basic" && player.bench.length < 5) {
+            if (player.deck[i].element === "Lightning" && player.deck[i].stage === "Basic" && player.bench.length < player.getMaxBench()) {
               player.bench.push(player.deck.splice(i, 1)[0]);
             }
           }
@@ -526,11 +583,24 @@
       } else if (move.type === 'play_item') {
         const card = player.hand.splice(move.cardIdx, 1)[0];
         player.discard_pile.push(card);
-        appendLog(`[${player.name}] Played Item: ${card.name}.`);
-        if (card.name === "Buddy-Buddy Poffin") {
+        const aceStr = card.is_ace_spec ? " [ACE SPEC]" : "";
+        appendLog(`[${player.name}] Played Item${aceStr}: ${card.name}.`);
+
+        if (card.name === "Prime Catcher" && opp.bench.length > 0 && player.bench.length > 0) {
+          const oppSwapped = opp.bench.shift();
+          opp.bench.push(opp.active);
+          opp.active = oppSwapped;
+          opp.active.special_conditions = [];
+
+          const mySwapped = player.bench.shift();
+          player.bench.push(player.active);
+          player.active = mySwapped;
+          player.active.special_conditions = [];
+          appendLog(`  -> Prime Catcher gusted ${oppSwapped.name} and switched active to ${mySwapped.name}!`);
+        } else if (card.name === "Buddy-Buddy Poffin") {
           let count = 0;
           for (let i = player.deck.length - 1; i >= 0 && count < 2; i--) {
-            if (player.deck[i].stage === "Basic" && player.deck[i].max_hp <= 70 && player.bench.length < 5) {
+            if (player.deck[i].stage === "Basic" && player.deck[i].max_hp <= 70 && player.bench.length < player.getMaxBench()) {
               player.bench.push(player.deck.splice(i, 1)[0]);
               count++;
             }
@@ -576,6 +646,7 @@
         card.attached_energy = target.attached_energy;
         card.base_card = target;
         card.turn_played = state.turnNumber;
+        card.special_conditions = [];
         if (move.targetIdx === 0) player.active = card;
         else player.bench[move.targetIdx - 1] = card;
         appendLog(`[${player.name}] Evolved into ${card.name}!`);
@@ -588,6 +659,7 @@
           const swapped = player.bench.splice(move.targetIdx - 1, 1)[0];
           player.bench.push(player.active);
           player.active = swapped;
+          player.active.special_conditions = [];
           appendLog(`  -> Jet Energy auto-switched ${swapped.name} to Active!`);
         }
         state.energyAttached = true;
@@ -598,6 +670,10 @@
         let dmg = atk.dmg;
         if (atk.name === "Burning Darkness") {
           dmg = 180 + (30 * (6 - player.prize_cards.length));
+        } else if (atk.scaling_type === "damage_counters") {
+          dmg = atk.dmg * Math.floor(player.active.damage_counters / 10);
+        } else if (atk.scaling_type === "bench_count") {
+          dmg = atk.dmg * player.bench.length;
         } else if (atk.is_scaling) {
           const discarded = player.active.attached_energy.length;
           player.active.attached_energy = [];
@@ -608,6 +684,12 @@
         }
         appendLog(`💥 [${player.name}] ${player.active.name} used ${atk.name} (${dmg} damage)!`);
         opp.active.damage_counters += dmg;
+
+        if (atk.inflicts_condition) {
+          opp.active.special_conditions.push(atk.inflicts_condition);
+          appendLog(`  -> Inflicted ${atk.inflicts_condition}!`);
+        }
+        if (atk.cures_conditions) player.active.special_conditions = [];
 
         if (atk.bench_dmg && opp.bench.length > 0) {
           opp.bench[0].damage_counters += atk.bench_dmg;
@@ -655,6 +737,7 @@
 
         if (!p.active && p.bench.length > 0) {
           p.active = p.bench.shift();
+          p.active.special_conditions = [];
           appendLog(`🔄 ${p.name} promoted ${p.active.name} to Active.`);
         } else if (!p.active && p.bench.length === 0) {
           state.gameOver = true;
@@ -693,6 +776,16 @@
     }
 
     function switchTurn() {
+      // Checkup
+      for (const p of gameState.players) {
+        if (p.active && p.active.special_conditions.includes("Poisoned")) {
+          p.active.damage_counters += 10;
+          appendLog(`  [Checkup] ${p.active.name} took 10 Poison damage.`);
+        }
+      }
+      resolveKnockouts(gameState);
+      if (gameState.gameOver) return;
+
       gameState.players[gameState.activePlayerIdx].turns_taken += 1;
       gameState.activePlayerIdx = 1 - gameState.activePlayerIdx;
       gameState.turnNumber += 1;
@@ -720,14 +813,19 @@
       const effMaxHp = card.getEffectiveMaxHp ? card.getEffectiveMaxHp() : card.max_hp;
       const hpPct = Math.max(0, Math.min(100, ((effMaxHp - card.damage_counters) / effMaxHp) * 100));
       const exBadge = card.is_ex ? `<span class="px-1 py-0.2 rounded text-[8px] font-black bg-amber-500/20 text-amber-300 border border-amber-500/40">EX (${card.prize_yield}P)</span>` : '';
+      const aceBadge = card.is_ace_spec ? `<span class="px-1 py-0.2 rounded text-[8px] font-black bg-purple-500/30 text-purple-300 border border-purple-500/50">ACE SPEC</span>` : '';
+      const teraBadge = card.is_tera ? `<span class="px-1 py-0.2 rounded text-[8px] font-black bg-teal-500/20 text-teal-300 border border-teal-500/40">Tera</span>` : '';
       const abBadge = card.ability ? `<div class="text-[9px] text-purple-300 font-semibold truncate">⚡ ${card.ability.name}</div>` : '';
+      const condBadge = card.special_conditions && card.special_conditions.length > 0 ? `<div class="text-[9px] text-rose-400 font-bold">⚠️ ${card.special_conditions.join(', ')}</div>` : '';
+
+      const borderClass = card.is_ace_spec ? 'ace-spec-border' : (card.is_ex ? 'ex-card-border' : 'border-slate-700');
 
       if (isSmall) {
         return `
-          <div class="bg-slate-900 border border-slate-700 rounded-xl p-2 text-xs shadow card-transition flex flex-col justify-between h-[96px]">
+          <div class="bg-slate-900 ${borderClass} rounded-xl p-2 text-xs shadow card-transition flex flex-col justify-between h-[98px]">
             <div class="flex justify-between items-center">
               <span class="font-bold truncate text-[11px]">${card.name}</span>
-              ${exBadge}
+              ${aceBadge || exBadge || teraBadge}
             </div>
             ${card.max_hp ? `
               <div>
@@ -738,7 +836,7 @@
                 <div class="w-full bg-slate-800 h-1.5 rounded-full overflow-hidden">
                   <div class="h-full bg-emerald-500" style="width: ${hpPct}%"></div>
                 </div>
-                ${abBadge}
+                ${condBadge || abBadge}
               </div>
             ` : `<div class="text-[10px] text-slate-400 italic truncate">${card.desc || card.element}</div>`}
           </div>
@@ -746,12 +844,12 @@
       }
 
       return `
-        <div class="bg-slate-900/95 border-2 ${card.is_ex ? 'ex-card-border' : 'border-slate-700'} rounded-2xl p-3.5 shadow-2xl active-card-glow card-transition">
+        <div class="bg-slate-900/95 border-2 ${borderClass} rounded-2xl p-3.5 shadow-2xl active-card-glow card-transition">
           <div class="flex justify-between items-center mb-1.5">
             <div>
               <div class="flex items-center gap-1.5">
                 <span class="text-[10px] font-bold uppercase tracking-wider text-slate-400">${card.stage || 'Basic'}</span>
-                ${exBadge}
+                ${aceBadge} ${exBadge} ${teraBadge}
               </div>
               <h4 class="font-black text-base text-slate-100">${card.name}</h4>
             </div>
@@ -762,6 +860,12 @@
               </div>
             </div>
           </div>
+
+          ${card.special_conditions && card.special_conditions.length > 0 ? `
+            <div class="px-2 py-0.5 bg-rose-950/50 border border-rose-800/40 rounded-lg text-[10px] text-rose-300 flex items-center justify-between my-1">
+              <span>⚠️ Status: <b>${card.special_conditions.join(', ')}</b></span>
+            </div>
+          ` : ''}
 
           ${card.ability ? `
             <div class="px-2 py-1 bg-purple-950/40 border border-purple-800/40 rounded-lg text-[10px] text-purple-300 flex items-center justify-between my-1">
@@ -795,6 +899,9 @@
       document.getElementById('active-player-display').textContent = gameState.players[gameState.activePlayerIdx].name;
       document.getElementById('stadium-display').textContent = gameState.activeStadium ? gameState.activeStadium.name : 'None';
 
+      document.getElementById('p1-bench-header').textContent = `Bench (Max ${p1.getMaxBench()})`;
+      document.getElementById('p2-bench-header').textContent = `Bench (Max ${p2.getMaxBench()})`;
+
       document.getElementById('p1-deck-count').textContent = p1.deck.length;
       document.getElementById('p1-hand-count').textContent = p1.hand.length;
       document.getElementById('p1-prize-count').textContent = p1.prize_cards.length;
@@ -806,12 +913,13 @@
       document.getElementById('p1-active-container').innerHTML = renderCard(p1.active);
       document.getElementById('p2-active-container').innerHTML = renderCard(p2.active);
 
+      const maxBenchSlots = Math.max(p1.getMaxBench(), p2.getMaxBench(), 5);
       let p1BenchHtml = '';
-      for (let i = 0; i < 5; i++) p1BenchHtml += renderCard(p1.bench[i] || null, true);
+      for (let i = 0; i < maxBenchSlots; i++) p1BenchHtml += renderCard(p1.bench[i] || null, true);
       document.getElementById('p1-bench-container').innerHTML = p1BenchHtml;
 
       let p2BenchHtml = '';
-      for (let i = 0; i < 5; i++) p2BenchHtml += renderCard(p2.bench[i] || null, true);
+      for (let i = 0; i < maxBenchSlots; i++) p2BenchHtml += renderCard(p2.bench[i] || null, true);
       document.getElementById('p2-bench-container').innerHTML = p2BenchHtml;
 
       document.getElementById('p1-hand-container').innerHTML = p1.hand.map(c => `
@@ -840,9 +948,9 @@
 
       const p2Dmg = p2.active ? p2.active.damage_counters : 0;
       const p2Max = p2.active ? p2.active.getEffectiveMaxHp() : 1;
-      const energy1 = (p1.active ? p1.active.attached_energy.length : 0) + p1.bench.reduce((acc, b) => acc + b.attached_energy.length, 0);
+      const p2Conds = p2.active && p2.active.special_conditions.length > 0 ? p2.active.special_conditions.join(', ') : "None";
 
-      let score = (prizeDiff * 0.4) + (boardDiff * 0.15) + ((p2Dmg / p2Max) * 0.25) + (energy1 * 0.05);
+      let score = (prizeDiff * 0.4) + (boardDiff * 0.15) + ((p2Dmg / p2Max) * 0.25);
       score = Math.max(-1.0, Math.min(1.0, score));
 
       document.getElementById('mcts-score-value').textContent = (score >= 0 ? '+' : '') + score.toFixed(3);
@@ -855,7 +963,7 @@
       document.getElementById('metric-prizes').textContent = `${prizeDiff >= 0 ? '+' : ''}${prizeDiff} cards`;
       document.getElementById('metric-board').textContent = `${boardDiff >= 0 ? '+' : ''}${boardDiff} pokémon`;
       document.getElementById('metric-damage').textContent = `${p2Dmg} / ${p2Max} HP`;
-      document.getElementById('metric-energy').textContent = `${energy1} Energy`;
+      document.getElementById('metric-conditions').textContent = p2Conds;
     }
 
     function appendLog(msg) {

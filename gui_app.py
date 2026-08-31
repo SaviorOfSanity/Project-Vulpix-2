@@ -1,7 +1,7 @@
 """
-Pokémon TCG Visual GUI & MCTS Game State Explorer (Standard Format - Phase 2)
+Pokémon TCG Visual GUI & ISMCTS Game State Explorer (Standard Format - Phase 3)
 Uses Python's standard tkinter GUI framework (no external dependencies needed).
-Connects directly to the live Game Engine, Meta Archetypes, Abilities, Special Energy, and MCTS Controller.
+Connects directly to the live Game Engine, Special Conditions, ACE SPECs, Gardevoir/Terapagos engines, and ISMCTS.
 """
 
 import tkinter as tk
@@ -18,12 +18,51 @@ TurnBasedGreedyAI = game_engine.TurnBasedGreedyAI
 MCTSController = game_engine.MCTSController
 
 ARCHETYPES = {
+    "Gardevoir ex / Drifloon": (
+        ["Ralts"] * 4 +
+        ["Kirlia"] * 4 +
+        ["Gardevoir ex"] * 2 +
+        ["Drifloon"] * 2 +
+        ["Scream Tail"] * 2 +
+        ["Munkidori"] * 2 +
+        ["Fezandipiti ex"] * 1 +
+        ["Hero's Cape"] * 1 +
+        ["Buddy-Buddy Poffin"] * 4 +
+        ["Ultra Ball"] * 4 +
+        ["Super Rod"] * 2 +
+        ["Counter Catcher"] * 1 +
+        ["Professor's Research"] * 4 +
+        ["Boss's Orders"] * 2 +
+        ["Iono"] * 3 +
+        ["Psychic Energy"] * 18 +
+        ["Darkness Energy"] * 4
+    ),
+    "Terapagos ex / Noctowl": (
+        ["Terapagos ex"] * 3 +
+        ["Hoothoot"] * 3 +
+        ["Noctowl"] * 3 +
+        ["Fezandipiti ex"] * 1 +
+        ["Prime Catcher"] * 1 +
+        ["Area Zero Underdepths"] * 3 +
+        ["Buddy-Buddy Poffin"] * 4 +
+        ["Ultra Ball"] * 4 +
+        ["Nest Ball"] * 4 +
+        ["Super Rod"] * 2 +
+        ["Double Turbo Energy"] * 4 +
+        ["Professor's Research"] * 4 +
+        ["Boss's Orders"] * 2 +
+        ["Iono"] * 3 +
+        ["Grass Energy"] * 6 +
+        ["Lightning Energy"] * 6 +
+        ["Fighting Energy"] * 7
+    ),
     "Charizard ex / Pidgeot ex": (
         ["Charmander"] * 4 +
         ["Charmeleon"] * 1 +
         ["Charizard ex"] * 3 +
         ["Pidgey"] * 3 +
         ["Pidgeot ex"] * 2 +
+        ["Unfair Stamp"] * 1 +
         ["Rare Candy"] * 4 +
         ["Buddy-Buddy Poffin"] * 4 +
         ["Ultra Ball"] * 4 +
@@ -34,13 +73,14 @@ ARCHETYPES = {
         ["Boss's Orders"] * 2 +
         ["Iono"] * 3 +
         ["Artazon"] * 1 +
-        ["Fire Energy"] * 16 +
+        ["Fire Energy"] * 15 +
         ["Double Turbo Energy"] * 4
     ),
     "Dragapult ex": (
         ["Dreepy"] * 4 +
         ["Drakloak"] * 4 +
         ["Dragapult ex"] * 3 +
+        ["Prime Catcher"] * 1 +
         ["Buddy-Buddy Poffin"] * 4 +
         ["Rare Candy"] * 3 +
         ["Ultra Ball"] * 4 +
@@ -52,11 +92,12 @@ ARCHETYPES = {
         ["Fire Energy"] * 8 +
         ["Psychic Energy"] * 8 +
         ["Jet Energy"] * 4 +
-        ["Mist Energy"] * 6
+        ["Mist Energy"] * 5
     ),
     "Raging Bolt ex / Ogerpon ex": (
         ["Raging Bolt ex"] * 4 +
         ["Teal Mask Ogerpon ex"] * 4 +
+        ["Prime Catcher"] * 1 +
         ["Professor Sada's Vitality"] * 4 +
         ["Nest Ball"] * 4 +
         ["Ultra Ball"] * 4 +
@@ -65,7 +106,7 @@ ARCHETYPES = {
         ["Professor's Research"] * 4 +
         ["Boss's Orders"] * 2 +
         ["Iono"] * 3 +
-        ["Grass Energy"] * 14 +
+        ["Grass Energy"] * 13 +
         ["Lightning Energy"] * 6 +
         ["Fighting Energy"] * 6
     ),
@@ -73,6 +114,7 @@ ARCHETYPES = {
         ["Miraidon ex"] * 3 +
         ["Iron Hands ex"] * 3 +
         ["Pikachu ex"] * 2 +
+        ["Prime Catcher"] * 1 +
         ["Electric Generator"] * 4 +
         ["Nest Ball"] * 4 +
         ["Ultra Ball"] * 4 +
@@ -82,7 +124,7 @@ ARCHETYPES = {
         ["Professor's Research"] * 4 +
         ["Boss's Orders"] * 2 +
         ["Iono"] * 2 +
-        ["Lightning Energy"] * 24
+        ["Lightning Energy"] * 23
     )
 }
 
@@ -90,15 +132,15 @@ ARCHETYPES = {
 class PokemonTCGGUI:
     def __init__(self, root):
         self.root = root
-        self.root.title("Pokémon TCG Simulator & MCTS Visualizer (Standard Format - Phase 2)")
-        self.root.geometry("1280x890")
-        self.root.minsize(1100, 780)
+        self.root.title("Pokémon TCG Simulator & ISMCTS Visualizer (Standard Format - Phase 3)")
+        self.root.geometry("1320x920")
+        self.root.minsize(1120, 800)
         self.root.configure(bg="#0f172a")
 
         # Game State
         self.factory = CardFactory('cards.json')
-        self.p1_archetype_name = "Charizard ex / Pidgeot ex"
-        self.p2_archetype_name = "Dragapult ex"
+        self.p1_archetype_name = "Gardevoir ex / Drifloon"
+        self.p2_archetype_name = "Terapagos ex / Noctowl"
 
         self.game = None
         self.mcts = MCTSController(iteration_limit=300, simulation_depth=16)
@@ -125,7 +167,7 @@ class PokemonTCGGUI:
 
         title_label = tk.Label(
             top_bar,
-            text="⚡ Pokémon TCG & MCTS Engine",
+            text="⚡ Pokémon TCG & ISMCTS Engine",
             font=("Segoe UI", 13, "bold"),
             fg="#f8fafc",
             bg="#1e293b"
@@ -135,14 +177,14 @@ class PokemonTCGGUI:
         # Mode Selector
         self.mode_var = tk.StringVar(value="ai_vs_ai")
         mode_btn1 = tk.Radiobutton(
-            top_bar, text="MCTS vs AI", variable=self.mode_var, value="ai_vs_ai",
+            top_bar, text="ISMCTS vs AI", variable=self.mode_var, value="ai_vs_ai",
             command=self.on_mode_change, bg="#1e293b", fg="#94a3b8", selectcolor="#0f172a",
             activebackground="#1e293b", activeforeground="#f8fafc", font=("Segoe UI", 8, "bold")
         )
         mode_btn1.pack(side="left", padx=2)
 
         mode_btn2 = tk.Radiobutton(
-            top_bar, text="Human vs MCTS", variable=self.mode_var, value="human_vs_mcts",
+            top_bar, text="Human vs ISMCTS", variable=self.mode_var, value="human_vs_mcts",
             command=self.on_mode_change, bg="#1e293b", fg="#94a3b8", selectcolor="#0f172a",
             activebackground="#1e293b", activeforeground="#f8fafc", font=("Segoe UI", 8, "bold")
         )
@@ -150,13 +192,13 @@ class PokemonTCGGUI:
 
         # Deck Archetype Pickers
         tk.Label(top_bar, text="P1:", font=("Segoe UI", 8), fg="#94a3b8", bg="#1e293b").pack(side="left", padx=(8, 2))
-        self.p1_combo = ttk.Combobox(top_bar, values=list(ARCHETYPES.keys()), state="readonly", width=18, font=("Segoe UI", 8))
+        self.p1_combo = ttk.Combobox(top_bar, values=list(ARCHETYPES.keys()), state="readonly", width=20, font=("Segoe UI", 8))
         self.p1_combo.set(self.p1_archetype_name)
         self.p1_combo.pack(side="left", padx=2)
         self.p1_combo.bind("<<ComboboxSelected>>", self.on_archetype_change)
 
         tk.Label(top_bar, text="P2:", font=("Segoe UI", 8), fg="#94a3b8", bg="#1e293b").pack(side="left", padx=(6, 2))
-        self.p2_combo = ttk.Combobox(top_bar, values=list(ARCHETYPES.keys()), state="readonly", width=18, font=("Segoe UI", 8))
+        self.p2_combo = ttk.Combobox(top_bar, values=list(ARCHETYPES.keys()), state="readonly", width=20, font=("Segoe UI", 8))
         self.p2_combo.set(self.p2_archetype_name)
         self.p2_combo.pack(side="left", padx=2)
         self.p2_combo.bind("<<ComboboxSelected>>", self.on_archetype_change)
@@ -188,7 +230,7 @@ class PokemonTCGGUI:
         lbl_speed.pack(side="left", padx=(8, 2))
         self.slider_speed = tk.Scale(
             top_bar, from_=100, to=1500, orient="horizontal", bg="#1e293b", fg="#94a3b8",
-            highlightthickness=0, length=70, showvalue=0, command=self.on_speed_change
+            highlightthickness=0, length=65, showvalue=0, command=self.on_speed_change
         )
         self.slider_speed.set(600)
         self.slider_speed.pack(side="left", padx=2)
@@ -250,9 +292,9 @@ class PokemonTCGGUI:
         )
         self.last_move_label.pack(side="right")
 
-        # --- PLAYMAT: PLAYER 1 (MCTS / Human) ---
+        # --- PLAYMAT: PLAYER 1 (ISMCTS / Human) ---
         self.p1_card_frame = tk.LabelFrame(
-            left_playmat, text=" Player 1: (MCTS AI / You) ", font=("Segoe UI", 10, "bold"),
+            left_playmat, text=" Player 1: (ISMCTS AI / You) ", font=("Segoe UI", 10, "bold"),
             bg="#1e293b", fg="#6366f1", relief="groove", bd=1, padx=8, pady=4
         )
         self.p1_card_frame.pack(fill="x", pady=(3, 0))
@@ -292,7 +334,7 @@ class PokemonTCGGUI:
 
         # --- RIGHT SIDE: TELEMETRY & LOGS ---
         mcts_box = tk.LabelFrame(
-            right_panel, text=" MCTS Heuristic Advantage ", font=("Segoe UI", 9, "bold"),
+            right_panel, text=" ISMCTS Heuristic Advantage ", font=("Segoe UI", 9, "bold"),
             bg="#1e293b", fg="#38bdf8", relief="groove", bd=1, padx=8, pady=6
         )
         mcts_box.pack(fill="x", pady=(0, 4))
@@ -308,7 +350,7 @@ class PokemonTCGGUI:
         self.progress_advantage['value'] = 1.0
 
         self.breakdown_label = tk.Label(
-            mcts_box, text="Prizes: 0 | Board: 0 | Damage: 0 | Energy: 0",
+            mcts_box, text="Prizes: 0 | Board: 0 | Damage: 0 | Conditions: None",
             font=("Segoe UI", 8), fg="#94a3b8", bg="#1e293b", justify="left"
         )
         self.breakdown_label.pack(anchor="w")
@@ -378,10 +420,12 @@ class PokemonTCGGUI:
         cur_hp = eff_max - p_card.damage_counters
         energy_count = sum(getattr(e, 'energy_units', 1) for e in p_card.attached_energy)
         ex_str = f" [EX {p_card.prize_yield}P]" if p_card.is_rule_box else ""
+        tera_str = " [Tera]" if p_card.is_tera else ""
         tool_str = f" [Tool: {p_card.attached_tool.name}]" if p_card.attached_tool else ""
+        cond_str = f" [Cond: {', '.join(k.value for k in p_card.special_conditions)}]" if p_card.special_conditions else ""
         ab_str = f" [Ability: {p_card.ability['name']}]" if p_card.ability else ""
         atks = ", ".join([f"{a['name']} ({a['damage']}dmg)" for a in p_card.attacks])
-        return f"{p_card.name}{ex_str}{tool_str}{ab_str}\nHP: {cur_hp}/{eff_max} | Energy: {energy_count}⚡\nAttacks: {atks}"
+        return f"{p_card.name}{ex_str}{tera_str}{tool_str}{cond_str}{ab_str}\nHP: {cur_hp}/{eff_max} | Energy: {energy_count}⚡\nAttacks: {atks}"
 
     def update_view(self):
         if not self.game:
@@ -398,6 +442,7 @@ class PokemonTCGGUI:
         self.stadium_label.config(text=f"Stadium: {stadium_name}")
 
         # Opponent (P2)
+        p2_max_b = p2.get_max_bench_size(self.game)
         self.p2_stats_label.config(
             text=f"Deck: {len(p2.deck)} | Hand: {len(p2.hand)} | Prizes Remaining: {len(p2.prize_cards)}"
         )
@@ -407,9 +452,10 @@ class PokemonTCGGUI:
             self.p2_active_label.config(text="ACTIVE: (None)", fg="#94a3b8")
 
         p2_bench_str = "\n".join([f"• {self.format_card_info(p)}" for p in p2.bench]) or "(Bench Empty)"
-        self.p2_bench_label.config(text=f"BENCH ({len(p2.bench)}/5):\n{p2_bench_str}")
+        self.p2_bench_label.config(text=f"BENCH ({len(p2.bench)}/{p2_max_b}):\n{p2_bench_str}")
 
         # Player 1 (P1)
+        p1_max_b = p1.get_max_bench_size(self.game)
         self.p1_stats_label.config(
             text=f"Deck: {len(p1.deck)} | Hand: {len(p1.hand)} | Prizes Remaining: {len(p1.prize_cards)}"
         )
@@ -419,12 +465,12 @@ class PokemonTCGGUI:
             self.p1_active_label.config(text="ACTIVE: (None)", fg="#94a3b8")
 
         p1_bench_str = "\n".join([f"• {self.format_card_info(p)}" for p in p1.bench]) or "(Bench Empty)"
-        self.p1_bench_label.config(text=f"BENCH ({len(p1.bench)}/5):\n{p1_bench_str}")
+        self.p1_bench_label.config(text=f"BENCH ({len(p1.bench)}/{p1_max_b}):\n{p1_bench_str}")
 
-        p1_hand_str = " | ".join([c.name for c in p1.hand]) or "(Hand Empty)"
+        p1_hand_str = " | ".join([c.name + (" [ACE]" if c.is_ace_spec else "") for c in p1.hand]) or "(Hand Empty)"
         self.p1_hand_label.config(text=f"HAND ({len(p1.hand)}): {p1_hand_str}")
 
-        # MCTS Heuristic Telemetry
+        # ISMCTS Heuristic Telemetry
         eval_score = self.mcts._evaluate_state(self.game, p1)
         self.score_display_label.config(
             text=f"Evaluation Score: {eval_score:+.3f}",
@@ -438,11 +484,10 @@ class PokemonTCGGUI:
         board_diff = p1_board - p2_board
         p2_dmg = p2.active_pokemon.damage_counters if p2.active_pokemon else 0
         p2_max = p2.active_pokemon.get_effective_max_hp() if p2.active_pokemon else 1
-        p1_energy = sum(sum(getattr(e, 'energy_units', 1) for e in p.attached_energy) for p in ([p1.active_pokemon] + p1.bench) if p)
-        p2_energy = sum(sum(getattr(e, 'energy_units', 1) for e in p.attached_energy) for p in ([p2.active_pokemon] + p2.bench) if p)
+        p2_conds = ", ".join([k.value for k in p2.active_pokemon.special_conditions]) if (p2.active_pokemon and p2.active_pokemon.special_conditions) else "None"
 
         self.breakdown_label.config(
-            text=f"Prize Diff: {prize_diff:+d} | Board Diff: {board_diff:+d} | Damage: {p2_dmg}/{p2_max} | Energy Diff: {p1_energy - p2_energy:+d}"
+            text=f"Prize Diff: {prize_diff:+d} | Board Diff: {board_diff:+d} | Damage: {p2_dmg}/{p2_max} | Opp Conds: {p2_conds}"
         )
 
         for widget in self.human_actions_frame.winfo_children():
@@ -452,7 +497,7 @@ class PokemonTCGGUI:
             moves = self.game.get_legal_moves()
             lbl_pick = tk.Label(self.human_actions_frame, text="Your Move:", font=("Segoe UI", 9, "bold"), fg="#38bdf8", bg="#0f172a")
             lbl_pick.pack(side="left", padx=4)
-            for m in moves[:6]:  # Limit inline buttons to 6
+            for m in moves[:6]:
                 btn_m = tk.Button(
                     self.human_actions_frame, text=self.format_move_text(m), font=("Segoe UI", 8),
                     bg="#1e293b", fg="#f8fafc", activebackground="#334155", activeforeground="#ffffff",
@@ -479,7 +524,8 @@ class PokemonTCGGUI:
             return f"Ability: {move[2]}"
         elif action_type == 'play_item':
             card = player.hand[move[1]]
-            return f"Item {card.name}"
+            ace_str = " [ACE]" if card.is_ace_spec else ""
+            return f"Item {card.name}{ace_str}"
         elif action_type == 'attach_tool':
             card = player.hand[move[1]]
             tgt = "Active" if move[2] == 0 else f"Bench {move[2]}"
@@ -528,7 +574,7 @@ class PokemonTCGGUI:
 
         if self.game.active_player_index == 0:
             chosen_move = self.mcts.choose_action(self.game, legal_moves)
-            ai_name = "MCTS"
+            ai_name = "ISMCTS"
         else:
             chosen_move = self.greedy.choose_action(self.game, legal_moves)
             ai_name = "GreedyAI"
