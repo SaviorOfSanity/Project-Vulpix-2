@@ -133,12 +133,20 @@ class DeckBuilder:
                 deck += [secondary_attacker] * 2
 
         # Support Pokémon Consistency Engine
-        if support_engine == "draw_support" or primary_attacker in ("Gardevoir ex", "Ceruledge ex", "Gholdengo ex"):
+        if support_engine == "draw_support" or primary_attacker in ("Gardevoir ex", "Ceruledge ex", "Gholdengo ex", "Lillie's Clefairy ex"):
             if "Fezandipiti ex" in self.factory.cards_by_name and "Fezandipiti ex" not in deck:
                 deck += ["Fezandipiti ex"] * 1
         elif support_engine == "tera_support" or primary_data.get("is_tera", False):
             if "Hoothoot" in self.factory.cards_by_name and "Noctowl" in self.factory.cards_by_name:
                 deck += ["Hoothoot"] * 2 + ["Noctowl"] * 2
+
+        if primary_attacker == "Lillie's Clefairy ex" or secondary_attacker == "Mega Kangaskhan ex":
+            if "Latias ex" in self.factory.cards_by_name:
+                deck += ["Latias ex"] * 2
+            if "Wellspring Mask Ogerpon ex" in self.factory.cards_by_name:
+                deck += ["Wellspring Mask Ogerpon ex"] * 1
+            if "Koraidon ex" in self.factory.cards_by_name:
+                deck += ["Koraidon ex"] * 1
 
         # 2. Search & Item Package
         # Check if we have <=70 HP Basics for Buddy-Buddy Poffin
@@ -168,12 +176,21 @@ class DeckBuilder:
             deck += ["Electric Generator"] * 4
         elif primary_attacker in ("Ceruledge ex", "Gholdengo ex"):
             deck += ["Earthen Vessel"] * 4
+        elif primary_attacker == "Lillie's Clefairy ex":
+            deck += ["Wondrous Patch"] * 3
+            if "Lillie's Pearl" in self.factory.cards_by_name:
+                deck += ["Lillie's Pearl"] * 2
 
         # 3. Supporters Package
-        deck += ["Professor's Research"] * 4
-        deck += ["Iono"] * 3
-        deck += ["Boss's Orders"] * 2
-        deck += ["Counter Catcher"] * 1
+        if primary_attacker == "Lillie's Clefairy ex":
+            deck += ["Crispin"] * 4
+            deck += ["Boss's Orders"] * 2
+            deck += ["Ciphermaniac's Codebreaking"] * 2
+        else:
+            deck += ["Professor's Research"] * 4
+            deck += ["Iono"] * 3
+            deck += ["Boss's Orders"] * 2
+            deck += ["Counter Catcher"] * 1
 
         if primary_data.get("is_ancient", False) or (secondary_attacker and self.factory.cards_by_name.get(secondary_attacker, {}).get("is_ancient", False)):
             deck += ["Professor Sada's Vitality"] * 4
@@ -194,7 +211,7 @@ class DeckBuilder:
             else:
                 deck += ["Prime Catcher"] * 1
 
-        if primary_data.get("is_tera", False) and "Area Zero Underdepths" in self.factory.cards_by_name:
+        if (primary_data.get("is_tera", False) or primary_attacker == "Lillie's Clefairy ex" or "Wellspring Mask Ogerpon ex" in deck) and "Area Zero Underdepths" in self.factory.cards_by_name:
             deck += ["Area Zero Underdepths"] * 3
 
         # 5. Energy Optimization & Curve Completion
@@ -464,6 +481,14 @@ class DeckBuilder:
                 "ace_spec": "Prime Catcher",
                 "concept": "Zero-Retreat Unlimited Energy Cannon",
                 "why_it_wins": "Latias ex gives free retreat to all Basic Pokémon. Discards unlimited energies from anywhere on your board to hit 280-420+ damage on Turn 1-2."
+            },
+            {
+                "name": "Lillie's Clefairy Rainbow Swarm Toolbox",
+                "attacker": "Lillie's Clefairy ex",
+                "secondary": "Mega Kangaskhan ex",
+                "ace_spec": "Prime Catcher",
+                "concept": "Area Zero 8-Bench Multi-Type Toolbox",
+                "why_it_wins": "Expands bench to 8 slots with Area Zero Underdepths. Uses Lillie's Clefairy Fairy Chorus to reduce energy costs by 1 across the board and accelerates multi-color energy with Crispin, Wondrous Patch, and Latias ex free retreat."
             }
         ]
 

@@ -1387,5 +1387,198 @@
     "card_type": "Trainer",
     "trainer_type": "Tool",
     "effect_description": "The Basic Pokémon this card is attached to gets +50 HP."
+  },
+  {
+    "name": "Lillie's Clefairy ex",
+    "card_type": "Pokemon",
+    "stage": "Basic",
+    "evolves_from": null,
+    "element": "Psychic",
+    "weakness": "Metal",
+    "resistance": null,
+    "hp": 190,
+    "prize_yield": 2,
+    "is_rule_box": true,
+    "ability": {
+      "name": "Fairy Chorus",
+      "type": "passive",
+      "description": "Each of your Benched Pokémon that has Energy attached to it can attack as if it had 1 additional Energy attached."
+    },
+    "attacks": [
+      {
+        "name": "Full Moon Burst",
+        "cost": ["Psychic", "Colorless", "Colorless"],
+        "damage": 180
+      }
+    ],
+    "retreat_cost": 1
+  },
+  {
+    "name": "Mega Kangaskhan ex",
+    "card_type": "Pokemon",
+    "stage": "Basic",
+    "evolves_from": null,
+    "element": "Colorless",
+    "weakness": "Fighting",
+    "resistance": null,
+    "hp": 240,
+    "prize_yield": 2,
+    "is_rule_box": true,
+    "attacks": [
+      {
+        "name": "Parental Beatdown",
+        "cost": ["Colorless", "Colorless", "Colorless"],
+        "damage": 180
+      }
+    ],
+    "retreat_cost": 3
+  },
+  {
+    "name": "Meowth ex",
+    "card_type": "Pokemon",
+    "stage": "Basic",
+    "evolves_from": null,
+    "element": "Colorless",
+    "weakness": "Fighting",
+    "resistance": null,
+    "hp": 160,
+    "prize_yield": 2,
+    "is_rule_box": true,
+    "ability": {
+      "name": "Pay Day Scheme",
+      "type": "activated",
+      "description": "Once during your turn, you may draw cards until you have 5 in your hand."
+    },
+    "attacks": [
+      {
+        "name": "Fury Swipes",
+        "cost": ["Colorless", "Colorless"],
+        "damage": 60
+      }
+    ],
+    "retreat_cost": 1
+  },
+  {
+    "name": "Wellspring Mask Ogerpon ex",
+    "card_type": "Pokemon",
+    "stage": "Basic",
+    "evolves_from": null,
+    "element": "Water",
+    "weakness": "Lightning",
+    "resistance": null,
+    "hp": 210,
+    "prize_yield": 2,
+    "is_rule_box": true,
+    "is_tera": true,
+    "attacks": [
+      {
+        "name": "Sobbing",
+        "cost": ["Colorless"],
+        "damage": 20
+      },
+      {
+        "name": "Torrential Pump",
+        "cost": ["Water", "Colorless", "Colorless"],
+        "damage": 100,
+        "bench_damage": 120
+      }
+    ],
+    "retreat_cost": 1
+  },
+  {
+    "name": "Koraidon ex",
+    "card_type": "Pokemon",
+    "stage": "Basic",
+    "evolves_from": null,
+    "element": "Fighting",
+    "weakness": "Psychic",
+    "resistance": null,
+    "hp": 230,
+    "prize_yield": 2,
+    "is_rule_box": true,
+    "attacks": [
+      {
+        "name": "Kaiser Tackle",
+        "cost": ["Fighting", "Fighting", "Colorless"],
+        "damage": 280
+      }
+    ],
+    "retreat_cost": 2
+  },
+  {
+    "name": "Moltres",
+    "card_type": "Pokemon",
+    "stage": "Basic",
+    "evolves_from": null,
+    "element": "Fire",
+    "weakness": "Water",
+    "resistance": "Fighting",
+    "hp": 120,
+    "prize_yield": 1,
+    "is_rule_box": false,
+    "attacks": [
+      {
+        "name": "Fire Wing",
+        "cost": ["Fire", "Colorless"],
+        "damage": 90
+      }
+    ],
+    "retreat_cost": 1
+  },
+  {
+    "name": "Chien-Pao",
+    "card_type": "Pokemon",
+    "stage": "Basic",
+    "evolves_from": null,
+    "element": "Water",
+    "weakness": "Metal",
+    "resistance": null,
+    "hp": 120,
+    "prize_yield": 1,
+    "is_rule_box": false,
+    "attacks": [
+      {
+        "name": "Icicle Missile",
+        "cost": ["Water", "Colorless"],
+        "damage": 80
+      }
+    ],
+    "retreat_cost": 1
+  },
+  {
+    "name": "Crispin",
+    "card_type": "Trainer",
+    "trainer_type": "Supporter",
+    "effect_description": "Search your deck for up to 2 Basic Energy cards of different types, reveal them, and attach 1 of them to 1 of your Pokémon. Put the other card into your hand. Then, shuffle your deck."
+  },
+  {
+    "name": "Ciphermaniac's Codebreaking",
+    "card_type": "Trainer",
+    "trainer_type": "Supporter",
+    "effect_description": "Search your deck for 2 cards, shuffle your deck, then put those cards on top of it in any order."
+  },
+  {
+    "name": "Cyrano",
+    "card_type": "Trainer",
+    "trainer_type": "Supporter",
+    "effect_description": "Search your deck for up to 3 Pokémon ex, reveal them, and put them into your hand. Then, shuffle your deck."
+  },
+  {
+    "name": "Dusk Ball",
+    "card_type": "Trainer",
+    "trainer_type": "Item",
+    "effect_description": "Look at the bottom 7 cards of your deck. You may reveal a Pokémon you find there and put it into your hand. Put the other cards on the bottom of your deck in any order."
+  },
+  {
+    "name": "Wondrous Patch",
+    "card_type": "Trainer",
+    "trainer_type": "Item",
+    "effect_description": "Attach a Basic Psychic Energy from your discard pile to 1 of your Benched Pokémon."
+  },
+  {
+    "name": "Lillie's Pearl",
+    "card_type": "Trainer",
+    "trainer_type": "Tool",
+    "effect_description": "The Pokémon this card is attached to takes 30 less damage from attacks from your opponent's Pokémon."
   }
 ]
